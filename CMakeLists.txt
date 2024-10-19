@@ -18,6 +18,8 @@ add_executable(realtime_cg
         Linking/lib/glad.c
         src/main.cpp
         src/stb.cpp
+        src/Lectures/LectureBase.h
+        src/Lectures/00-DemoLecture/Lecture00.h
 )
 
 # GLFW

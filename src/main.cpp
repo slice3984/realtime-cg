@@ -1,4 +1,6 @@
 #include <iostream>
+#include <vector>
+#include <memory>
 #include "glad/glad.h" // OpenGL 4.2
 #include <GLFW/glfw3.h>
 
@@ -15,11 +17,21 @@
 // stb_image
 #include "stb_image.h"
 
+// Lectures
+#include "Lectures/00-DemoLecture/Lecture00.h"
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
 int main() {
+    // Will be replaced by a ImGui menu in the future
+    const size_t activeLecture = 0;
+    std::vector<std::unique_ptr<LectureBase>> lectures;
+    lectures.push_back(std::make_unique<Lecture00>("Demo Lecture"));
+
+    lectures[activeLecture]->init();
+
     // GLM test
     glm::vec3 test{1.0f, 2.0f, 3.0f};
 
@@ -78,6 +90,8 @@ int main() {
         ImGui::ShowDemoWindow();
 
         // Rendering
+        lectures[activeLecture]->render();
+
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f); // Clear color
         glClear(GL_COLOR_BUFFER_BIT); // Clear the color buffer
 
