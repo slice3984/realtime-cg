@@ -18,19 +18,26 @@
 #include "stb_image.h"
 
 // Lectures
+#include "Shader.h"
 #include "Lectures/00-DemoLecture/Lecture00.h"
+#include "Lectures/01-Triangle/Lecture01.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
+void processInput(GLFWwindow *window) {
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+        glfwSetWindowShouldClose(window, true);
+    }
+}
+
 int main() {
     // Will be replaced by a ImGui menu in the future
-    const size_t activeLecture = 0;
+    const size_t activeLecture = 1;
     std::vector<std::unique_ptr<LectureBase>> lectures;
     lectures.push_back(std::make_unique<Lecture00>("Demo Lecture"));
-
-    lectures[activeLecture]->init();
+    lectures.push_back(std::make_unique<Lecture01>("Triangle"));
 
     // GLM test
     glm::vec3 test{1.0f, 2.0f, 3.0f};
@@ -64,6 +71,8 @@ int main() {
         return -1;
     }
 
+    glViewport(0, 0, 800, 600);
+
     // Initialize ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -76,10 +85,12 @@ int main() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 420"); // Use GLSL version 420
 
+    lectures[activeLecture]->init();
+
     // Main loop
     while (!glfwWindowShouldClose(window)) {
         // Poll and handle events
-        glfwPollEvents();
+        processInput(window);
 
         // Start the ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -88,12 +99,12 @@ int main() {
 
         // Create a simple ImGui window
         ImGui::ShowDemoWindow();
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f); // Clear color
+        glClear(GL_COLOR_BUFFER_BIT); // Clear the color buffer
+
 
         // Rendering
         lectures[activeLecture]->render();
-
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f); // Clear color
-        glClear(GL_COLOR_BUFFER_BIT); // Clear the color buffer
 
         // Render ImGui
         ImGui::Render();
@@ -101,6 +112,7 @@ int main() {
 
         // Swap buffers
         glfwSwapBuffers(window);
+        glfwPollEvents();
     }
 
     // Cleanup

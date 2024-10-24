@@ -20,6 +20,11 @@ add_executable(realtime_cg
         src/stb.cpp
         src/Lectures/LectureBase.h
         src/Lectures/00-DemoLecture/Lecture00.h
+        src/Lectures/01-Triangle/Lecture01.h
+        src/Shader.cpp
+        src/Shader.h
+        src/ShaderProgram.cpp
+        src/ShaderProgram.h
 )
 
 # GLFW

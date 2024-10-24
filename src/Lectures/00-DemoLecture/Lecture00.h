@@ -2,8 +2,8 @@
 // Created by slice on 10/19/24.
 //
 
-#ifndef LECTURE01_H
-#define LECTURE01_H
+#ifndef LECTURE00_H
+#define LECTURE00_H
 #include <iostream>
 
 #include "../LectureBase.h"
@@ -25,4 +25,4 @@ public:
 
 
 
-#endif //LECTURE01_H
+#endif //LECTURE00_H
