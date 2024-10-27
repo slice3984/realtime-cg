@@ -35,9 +35,6 @@ void processInput(GLFWwindow *window) {
 int main() {
     // Will be replaced by a ImGui menu in the future
     const size_t activeLecture = 1;
-    std::vector<std::unique_ptr<LectureBase>> lectures;
-    lectures.push_back(std::make_unique<Lecture00>("Demo Lecture"));
-    lectures.push_back(std::make_unique<Lecture01>("Triangle"));
 
     // GLM test
     glm::vec3 test{1.0f, 2.0f, 3.0f};
@@ -85,6 +82,10 @@ int main() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 420"); // Use GLSL version 420
 
+    std::vector<std::unique_ptr<LectureBase>> lectures;
+    lectures.push_back(std::make_unique<Lecture00>("Demo Lecture"));
+    lectures.push_back(std::make_unique<Lecture01>("Triangle"));
+
     lectures[activeLecture]->init();
 
     // Main loop
@@ -97,11 +98,8 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // Create a simple ImGui window
-        ImGui::ShowDemoWindow();
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f); // Clear color
         glClear(GL_COLOR_BUFFER_BIT); // Clear the color buffer
-
 
         // Rendering
         lectures[activeLecture]->render();
@@ -122,5 +120,6 @@ int main() {
 
     glfwDestroyWindow(window);
     glfwTerminate();
+
     return 0;
 }
