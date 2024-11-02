@@ -20,6 +20,7 @@
 // Lectures
 #include "Shader.h"
 #include "Lectures/00-DemoLecture/Lecture00.h"
+#include "Lectures/00-ImGuiTests/ImGuiTests.h"
 #include "Lectures/01-Triangle/Lecture01.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
@@ -34,7 +35,7 @@ void processInput(GLFWwindow *window) {
 
 int main() {
     // Will be replaced by a ImGui menu in the future
-    const size_t activeLecture = 1;
+    const size_t activeLecture = 0;
 
     // GLM test
     glm::vec3 test{1.0f, 2.0f, 3.0f};
@@ -51,7 +52,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Create a windowed mode window and its OpenGL context
-    GLFWwindow* window = glfwCreateWindow(800, 600, "Demo", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1280, 960, "Demo", nullptr, nullptr);
     if (!window) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -83,6 +84,7 @@ int main() {
     ImGui_ImplOpenGL3_Init("#version 420"); // Use GLSL version 420
 
     std::vector<std::unique_ptr<LectureBase>> lectures;
+    lectures.push_back(std::make_unique<ImGuiTests>("ImGui Tests"));
     lectures.push_back(std::make_unique<Lecture00>("Demo Lecture"));
     lectures.push_back(std::make_unique<Lecture01>("Triangle"));
 

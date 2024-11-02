@@ -25,6 +25,8 @@ add_executable(realtime_cg
         src/Shader.h
         src/ShaderProgram.cpp
         src/ShaderProgram.h
+        src/Lectures/00-ImGuiTests/ImGuiTests.h
+        src/ImGuiWindowCreator.h
 )
 
 # GLFW
