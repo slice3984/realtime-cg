@@ -22,7 +22,7 @@
 #include "Lectures/00-DemoLecture/Lecture00.h"
 #include "Lectures/00-ImGuiTests/ImGuiTests.h"
 #include "Lectures/01-Triangle/Lecture01.h"
-
+#include "Assignments/01-GLSL/Assignment01.h"
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
@@ -35,7 +35,7 @@ void processInput(GLFWwindow *window) {
 
 int main() {
     // Will be replaced by a ImGui menu in the future
-    const size_t activeLecture = 0;
+    const size_t activeLecture = 3;
 
     // GLM test
     glm::vec3 test{1.0f, 2.0f, 3.0f};
@@ -69,7 +69,7 @@ int main() {
         return -1;
     }
 
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, 1280, 960);
 
     // Initialize ImGui
     IMGUI_CHECKVERSION();
@@ -87,6 +87,7 @@ int main() {
     lectures.push_back(std::make_unique<ImGuiTests>("ImGui Tests"));
     lectures.push_back(std::make_unique<Lecture00>("Demo Lecture"));
     lectures.push_back(std::make_unique<Lecture01>("Triangle"));
+    lectures.push_back(std::make_unique<Assignment01>("Assignment 1"));
 
     lectures[activeLecture]->init();
 

@@ -5,7 +5,7 @@
 #ifndef IMGUITESTS_H
 #define IMGUITESTS_H
 #include "imgui.h"
-#include "../LectureBase.h"
+#include "../../RenderBase.h"
 #include "../../ImGuiWindowCreator.h"
 
 class ImGuiTests : public LectureBase {
@@ -23,9 +23,16 @@ public:
     }
 
     void render() override {
+        float time = getElapsedTime();
+
+        if (!d) {
+            resetClock();
+        }
+
         ImGuiWindowCreator("Test")
-            .display("My float", &c)
-            .display("My int", &a)
+            .display("Time", time)
+            .display("My float", c)
+            .display("My int", a)
             .spacing()
             .input("My int", &a)
             .input("Bool", &d)

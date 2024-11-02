@@ -6,7 +6,7 @@
 #define LECTURE00_H
 #include <iostream>
 
-#include "../LectureBase.h"
+#include "../../RenderBase.h"
 
 
 class Lecture00 : public LectureBase {

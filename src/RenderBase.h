@@ -6,10 +6,11 @@
 #define LECTUREBASE_H
 
 #include <string>
-#include "glad/glad.h"
-#include "imgui.h"
-#include "../Shader.h"
-#include "../ShaderProgram.h"
+#include <chrono>
+#include "../Linking/include/glad/glad.h"
+#include "../external/imgui/imgui.h"
+#include "Shader.h"
+#include "ShaderProgram.h"
 
 class LectureBase {
 protected:
@@ -17,11 +18,15 @@ protected:
     std::string m_vertexShaderPath;
     std::string m_fragmentShaderPath;
     GLuint m_programId{};
-    bool storedProgam{false};
+    ShaderProgram m_program;
+    bool m_storedProgam{false};
+    std::chrono::time_point<std::chrono::system_clock> m_startTime;
 public:
     std::string getTitle() const { return m_title; }
 
-    explicit LectureBase(std::string_view title) : m_title(title) {}
+    explicit LectureBase(std::string_view title) : m_title(title) {
+        m_startTime = std::chrono::high_resolution_clock::now();
+    }
 
     virtual void init() = 0;
     virtual void render() = 0;
@@ -44,6 +49,7 @@ protected:
         }
 
         ShaderProgram program;
+
         program.attachShader(vertexShader);
         program.attachShader(fragmentShader);
 
@@ -53,14 +59,15 @@ protected:
 
         GLuint oldProgram = m_programId;
         m_programId = program.getProgramId();
+        m_program = program;
 
         // Check if there is already a shader program associated to this lecture
         // in case there is, delete the old program
-        if (storedProgam) {
+        if (m_storedProgam) {
             glDeleteProgram(oldProgram);
         }
 
-        storedProgam = true;
+        m_storedProgam = true;
         return true;
     }
 
@@ -75,6 +82,17 @@ protected:
         }
 
         ImGui::End();
+    }
+
+    void resetClock() {
+        m_startTime = std::chrono::high_resolution_clock::now();
+    }
+
+    float getElapsedTime() {
+        auto currTime = std::chrono::high_resolution_clock::now();
+        auto duration = currTime - m_startTime;
+
+        return std::chrono::duration<float>(duration).count();
     }
 };
 

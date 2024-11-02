@@ -7,6 +7,8 @@
 
 #include <variant>
 #include <string>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include "imgui.h"
 
 class ImGuiWindowCreator {
@@ -19,13 +21,17 @@ public:
     }
 
     template <typename T>
-    ImGuiWindowCreator &display(std::string_view name, T* var) {
+    ImGuiWindowCreator &display(std::string_view name, T var) {
         if constexpr (std::is_same_v<T, int>) {
-            ImGui::Text("%s: %d", name.data(), *var);
+            ImGui::Text("%s: %d", name.data(), var);
         } else if constexpr (std::is_same_v<T, float>) {
-            ImGui::Text("%s: %.2f", name.data(), *var);
+            ImGui::Text("%s: %.2f", name.data(), var);
         } else if constexpr (std::is_same_v<T, double>) {
-            ImGui::Text("%s: %.2f", name.data(), *var);
+            ImGui::Text("%s: %.2f", name.data(), var);
+        } else if constexpr (std::is_same_v<T, long>) {
+            ImGui::Text("%s: %ld", name.data(), var);
+        } else if constexpr (std::is_same_v<T, long long>) {
+            ImGui::Text("%s: %lld", name.data(), var);
         } else {
             ImGui::Text("%s: Unsupported type", name.data());
         }
@@ -37,14 +43,14 @@ public:
     ImGuiWindowCreator &input(std::string_view name, T* var) {
         if constexpr (std::is_same_v<T, int>) {
             ImGui::InputInt(name.data(), var);
-        }
-        else if constexpr (std::is_same_v<T, float>) {
+        } else if constexpr (std::is_same_v<T, float>) {
             ImGui::InputFloat(name.data(), var);
-        }
-        else if constexpr (std::is_same_v<T, double>) {
+        } else if constexpr (std::is_same_v<T, double>) {
             ImGui::InputDouble(name.data(), var);
         } else if constexpr  (std::is_same_v<T, bool>) {
             ImGui::Checkbox(name.data(), var);
+        } else if constexpr (std::is_same_v<T, glm::vec3>) {
+            ImGui::InputFloat3(name.data(), glm::value_ptr(*var));
         }
         else {
             ImGui::Text("%s: Unsupported type", name.data());
@@ -53,13 +59,15 @@ public:
         return *this;
     }
 
-    template <typename T>
-    ImGuiWindowCreator &slider(std::string_view name, T* var, T min, T max) {
+    template <typename T, typename  U>
+    ImGuiWindowCreator &slider(std::string_view name, T* var, U min, U max) {
         if constexpr (std::is_same_v<T, int>) {
             ImGui::SliderInt(name.data(), var, min, max);
         } else if constexpr (std::is_same_v<T, float>) {
             ImGui::SliderFloat(name.data(), var, min, max);
-        }  else {
+        } else if constexpr (std::is_same_v<T, glm::vec3>) {
+            ImGui::SliderFloat3(name.data(), glm::value_ptr(*var), min, max);
+        } else {
             ImGui::Text("%s: Unsupported type", name.data());
         }
 

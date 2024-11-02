@@ -18,7 +18,7 @@ add_executable(realtime_cg
         Linking/lib/glad.c
         src/main.cpp
         src/stb.cpp
-        src/Lectures/LectureBase.h
+        src/RenderBase.h
         src/Lectures/00-DemoLecture/Lecture00.h
         src/Lectures/01-Triangle/Lecture01.h
         src/Shader.cpp
@@ -27,6 +27,7 @@ add_executable(realtime_cg
         src/ShaderProgram.h
         src/Lectures/00-ImGuiTests/ImGuiTests.h
         src/ImGuiWindowCreator.h
+        src/Assignments/01-GLSL/Assignment01.h
 )
 
 # GLFW
