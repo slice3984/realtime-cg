@@ -83,7 +83,7 @@ int main() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 420"); // Use GLSL version 420
 
-    std::vector<std::unique_ptr<LectureBase>> lectures;
+    std::vector<std::unique_ptr<RenderBase>> lectures;
     lectures.push_back(std::make_unique<ImGuiTests>("ImGui Tests"));
     lectures.push_back(std::make_unique<Lecture00>("Demo Lecture"));
     lectures.push_back(std::make_unique<Lecture01>("Triangle"));

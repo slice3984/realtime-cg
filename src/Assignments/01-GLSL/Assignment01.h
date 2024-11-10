@@ -8,14 +8,15 @@
 #include <glm/glm.hpp>
 #include "../../RenderBase.h"
 
-
-class Assignment01 : public LectureBase {
+class Assignment01 : public RenderBase {
 private:
     GLuint m_VAO;
     glm::vec3 m_color;
+    int m_columnCount = 50;
+    float m_animSpeed = 0.2f;
 
 public:
-    explicit Assignment01(std::string_view title) : LectureBase(title) {}
+    explicit Assignment01(std::string_view title) : RenderBase(title) {}
 
     void init() override {
         // Full screen quad
@@ -59,12 +60,20 @@ public:
             .heading("Info")
             .display("Time ", getElapsedTime())
             .heading("Settings")
-            .slider("Color", &m_color, 0.0f, 1.0f)
+            .slider("Column count", &m_columnCount, 5, 50)
+            .slider("Anim speed", &m_animSpeed, 0.0f, 3.0f)
             .end();
+
+        // Viewport size
+        GLint viewport[4];
+        glGetIntegerv(GL_VIEWPORT, viewport);
 
         glUseProgram(m_programId);
         m_program.setFloat("u_time", getElapsedTime());
         m_program.setVec3f("u_color", m_color);
+        m_program.setVec2f("u_windowDimensions", glm::vec2(viewport[2], viewport[3]));
+        m_program.setInt("u_columnCount", m_columnCount);
+        m_program.setFloat("u_animSpeed", m_animSpeed);
         glBindVertexArray(m_VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
         glBindVertexArray(0);

@@ -8,14 +8,14 @@
 #include "../../RenderBase.h"
 #include "../../ImGuiWindowCreator.h"
 
-class ImGuiTests : public LectureBase {
+class ImGuiTests : public RenderBase {
 private:
     int a = 5;
     int b = 7;
     float c = 23.4f;
     bool d = true;
 public:
-    explicit ImGuiTests(std::string_view title) : LectureBase(title) {}
+    explicit ImGuiTests(std::string_view title) : RenderBase(title) {}
 
     void init() override {
         ImGui::SetNextWindowPos(ImVec2(0, 0));

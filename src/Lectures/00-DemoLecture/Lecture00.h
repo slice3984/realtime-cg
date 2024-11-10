@@ -9,9 +9,9 @@
 #include "../../RenderBase.h"
 
 
-class Lecture00 : public LectureBase {
+class Lecture00 : public RenderBase {
 public:
-    explicit Lecture00(std::string_view title) : LectureBase(title) {
+    explicit Lecture00(std::string_view title) : RenderBase(title) {
     }
 
     void init() override {

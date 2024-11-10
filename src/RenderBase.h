@@ -12,7 +12,7 @@
 #include "Shader.h"
 #include "ShaderProgram.h"
 
-class LectureBase {
+class RenderBase {
 protected:
     std::string m_title;
     std::string m_vertexShaderPath;
@@ -24,14 +24,14 @@ protected:
 public:
     std::string getTitle() const { return m_title; }
 
-    explicit LectureBase(std::string_view title) : m_title(title) {
+    explicit RenderBase(std::string_view title) : m_title(title) {
         m_startTime = std::chrono::high_resolution_clock::now();
     }
 
     virtual void init() = 0;
     virtual void render() = 0;
 
-    virtual ~LectureBase() = default;
+    virtual ~RenderBase() = default;
 
 protected:
     bool compileShaders(std::string_view vertexShaderPath, std::string_view fragmentShaderPath) {

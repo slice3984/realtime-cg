@@ -7,12 +7,12 @@
 #include "glad/glad.h"
 #include "../../RenderBase.h"
 
-class Lecture01 : public LectureBase {
+class Lecture01 : public RenderBase {
 private:
     GLuint m_VAO;
 
 public:
-    explicit Lecture01(std::string_view title) : LectureBase(title) {
+    explicit Lecture01(std::string_view title) : RenderBase(title) {
     }
 
     void init() override {

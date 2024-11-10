@@ -45,6 +45,10 @@ public:
         glUniform1f(glGetUniformLocation(m_programId, name), value);
     }
 
+    void setVec2f(const char *name, glm::vec2 value) const {
+        glUniform2fv(glGetUniformLocation(m_programId, name), 1, glm::value_ptr(value));
+    }
+
     void setVec3f(const char *name, glm::vec3 value) const {
         glUniform3fv(glGetUniformLocation(m_programId, name), 1, glm::value_ptr(value));
     }
