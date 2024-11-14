@@ -28,6 +28,9 @@ add_executable(realtime_cg
         src/Lectures/00-ImGuiTests/ImGuiTests.h
         src/ImGuiWindowCreator.h
         src/Assignments/01-GLSL/Assignment01.h
+        src/OpenglUtils.h
+        src/OpenglUtils.cpp
+        src/Lectures/02-MultipleDraws/Lecture02.h
 )
 
 # GLFW
