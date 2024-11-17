@@ -19,59 +19,58 @@ public:
         compileShaders("../src/Lectures/02-MultipleDraws/shader.vert",
         "../src/Lectures/02-MultipleDraws/shader.frag");
 
-        // Generate VAO for the quad
-        m_handleQuad = opengl_utils::generateVao({
-            {
-                {
-                    -1.0f,  1.0f,  0.0f, // Top left
-                     1.0f,  1.0f,  0.0f, // Top right
-                    -1.0f, -1.0f,  0.0f, // Bottom left
-                     1.0f, -1.0f,  0.0f  // Bottom right
-                },
-                4, 3
+        std::vector<GLfloat> values = {
+            -1.0f,  1.0f,  0.0f, // Top left
+             1.0f,  1.0f,  0.0f, // Top right
+            -1.0f, -1.0f,  0.0f, // Bottom left
+             1.0f, -1.0f,  0.0f  // Bottom right
+        };
+
+        m_handleQuad = opengl_utils::generateVao(
+            VertexAttribArray{
+                values, 3
             },
-            {
+            VertexAttribArray{
                 {
-                     1.0f, 0.0f, 0.0f,
-                     0.0f, 1.0f, 0.0f,
-                     1.0f, 0.0f, 0.0f,
-                     0.0f, 1.0f, 0.0f
-                },
-                4, 3
-            }
-        }, {
-            {
+                         1.0f, 0.0f, 0.0f,
+                         0.0f, 1.0f, 0.0f,
+                         1.0f, 0.0f, 0.0f,
+                         0.0f, 1.0f, 0.0f
+                    }, 3
+            },
+            IndexBufferArray {
                 2, 1, 0,
                 2, 3, 1
-            },
-            6
-        });
+            }
+        );
 
-        m_handleTri = opengl_utils::generateVao({
-            {
+        m_handleTri = opengl_utils::generateVao(
+            VertexAttribArray{
                 {
                     -0.5f, -1.0f, 0.0f,
                     0.5f, -1.0f, 0.0f,
                     0.0f,  0.0f, 0.0f
-                }, 3, 3
+                }, 3
             },
-            {
+            VertexAttribArray{
                 {
-                    1.0f, 0.0f, 0.0f,
-                    0.0f, 1.0f, 0.0f,
-                    0.0f, 0.0f, 1.0f
-                }, 3, 3
+                        1.0f, 0.0f, 0.0f,
+                        0.0f, 1.0f, 0.0f,
+                        0.0f, 0.0f, 1.0f
+                    }, 3
             }
-        });
+        );
     }
 
     void render() override {
+
         glUseProgram(m_programId);
         glBindVertexArray(m_handleQuad.id);
         glDrawElements(GL_TRIANGLES, m_handleQuad.elemenCount, GL_UNSIGNED_INT, nullptr);
         glBindVertexArray(m_handleTri.id);
         glDrawArrays(GL_TRIANGLES, 0, m_handleTri.elemenCount);
         glBindVertexArray(0);
+
     }
 };
 
