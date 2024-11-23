@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.28)
 project(realtime_cg)
 
 set(CMAKE_CXX_STANDARD 17)
-
 set(IMGUI_SOURCES
         external/imgui/imgui.cpp
         external/imgui/imgui_widgets.cpp
@@ -31,6 +30,10 @@ add_executable(realtime_cg
         src/OpenglUtils.h
         src/OpenglUtils.cpp
         src/Lectures/02-MultipleDraws/Lecture02.h
+        src/Lectures/03-MVP/Lecture03.h
+        src/GltfLoader.cpp
+        src/GltfLoader.h
+        src/OrbitCamera.h
 )
 
 # GLFW

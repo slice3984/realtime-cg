@@ -9,6 +9,8 @@
 #include <vector>
 #include <cassert>
 #include <cstring>
+
+#include "GltfLoader.h"
 #include "glad/glad.h"
 
 struct VaoHandle {
@@ -59,11 +61,23 @@ struct VertexAttribArray {
     }
 };
 
+struct PrimitiveData {
+    std::vector<GLfloat> position;
+    std::vector<GLushort> color;
+    std::vector<GLfloat> normal;
+    std::vector<GLfloat> tangent;
+    std::vector<GLuint> ebo;
+};
+
+enum class PrimitiveType {
+    CUBE
+};
+
 namespace opengl_utils {
     template<typename  ...Args>
     VaoHandle generateVao(Args ...args) {
         enum class GlDataType {
-            FLOAT, INT
+            FLOAT, INT, USHORT
         };
 
         struct ProcessedVertexArray {
@@ -93,6 +107,9 @@ namespace opengl_utils {
                 } else if constexpr (std::is_same_v<T, VertexAttribArray<GLint>>) {
                     arr.type = GlDataType::INT;
                     arr.stride = arg.size * sizeof(GLint);
+                } else if constexpr  (std::is_same_v<T, VertexAttribArray<GLushort>>) {
+                    arr.type = GlDataType::USHORT;
+                    arr.stride = arg.size * sizeof(GLushort);
                 }
 
                 arr.size = arg.size;
@@ -151,6 +168,9 @@ namespace opengl_utils {
                 case GlDataType::INT:
                     glVertexAttribPointer(i, attribArray.size, GL_INT, GL_FALSE, maxOffset, (void *)(attribArray.bufferOffset));
                     break;
+                // Usually color data that has to be normalized
+                case GlDataType::USHORT:
+                    glVertexAttribPointer(i, attribArray.size, GL_UNSIGNED_SHORT, GL_TRUE, maxOffset, (void *)(attribArray.bufferOffset));
             }
 
             glEnableVertexAttribArray(i);
@@ -175,6 +195,96 @@ namespace opengl_utils {
         }
 
         return handle;
+    }
+
+    std::vector<const GltfPrimitive*> unpackGltfScene(const GltfScene& scene);
+
+    inline PrimitiveData getPrimitive(PrimitiveType type) {
+        // Cache already loaded primitives
+        static std::unordered_map<PrimitiveType, PrimitiveData> primitiveCache;
+
+        if (primitiveCache.find(type) == primitiveCache.end()) {
+            std::string path = "../models/primitives/";
+
+            switch (type) {
+                case PrimitiveType::CUBE:
+                    path += "test.glb";
+                    break;
+            }
+
+            PrimitiveData data;
+
+            // We assume there's only one primitive in every scene used here
+            GltfLoader loader;
+            GltfScene scene = loader.loadModel(path);
+            auto unpacked = unpackGltfScene(scene);
+            const GltfPrimitive* firstPrimitive = unpacked[0];
+            const GltfVertexAttrib& pos = firstPrimitive->get(GltfAttribute::POSITION);
+            const GltfVertexAttrib& color = firstPrimitive->get(GltfAttribute::COLOR_0);
+            const GltfVertexAttrib& normal = firstPrimitive->get(GltfAttribute::NORMAL);
+            const GltfVertexAttrib& tangent = firstPrimitive->get(GltfAttribute::TANGENT);
+
+            auto constructVector = [](const GltfVertexAttrib &attrib) -> std::vector<GLfloat> {
+                // We assume its always GLfloat
+                GLfloat* dataPtr = static_cast<GLfloat*>(attrib.buffer);
+                std::size_t vecSize = attrib.bufferSize / 4; // 4 byte for float
+                std::vector<GLfloat> vec;
+                vec.resize(vecSize);
+
+                std::memcpy(vec.data(), dataPtr, attrib.bufferSize);
+
+                return vec;
+            };
+
+            data.position = constructVector(pos);
+            data.normal = constructVector(normal);
+            data.tangent = constructVector(tangent);
+
+            // Construct vertex color attribute buffer
+            GLushort *dataPtr = static_cast<GLushort*>(color.buffer);
+            std::size_t vecSize = color.bufferSize / 2; // 2 byte for ushort
+            std::vector<GLushort> vec;
+            vec.resize(vecSize);
+
+            std::memcpy(vec.data(), dataPtr, color.bufferSize);
+
+            data.color = std::move(vec);
+            std::vector<GLuint> indexVec;
+            indexVec.resize(firstPrimitive->elemCount);
+
+            switch (firstPrimitive->componentType) {
+                case 5121: {  // GL_UNSIGNED_BYTE
+                    GLubyte* byteBuffer = static_cast<GLubyte*>(firstPrimitive->indexBuffer);
+                    for (size_t i = 0; i < firstPrimitive->elemCount; i++) {
+                        indexVec[i] = static_cast<GLuint>(byteBuffer[i]);
+                    }
+                    break;
+                }
+                case 5123: {  // GL_UNSIGNED_SHORT
+                    GLushort* shortBuffer = static_cast<GLushort*>(firstPrimitive->indexBuffer);
+                    for (size_t i = 0; i < firstPrimitive->elemCount; i++) {
+                        indexVec[i] = static_cast<GLuint>(shortBuffer[i]);
+                    }
+                    break;
+                }
+                case 5125: {  // GL_UNSIGNED_INT
+                    GLuint* intBuffer = static_cast<GLuint*>(firstPrimitive->indexBuffer);
+                    for (size_t i = 0; i < firstPrimitive->elemCount; i++) {
+                        indexVec[i] = intBuffer[i];
+                    }
+                    break;
+                }
+                default: {
+                    std::cerr << "Unsupported componentType: " << firstPrimitive->componentType << std::endl;
+                    break;
+                }
+            }
+
+            data.ebo = std::move(indexVec);
+            primitiveCache[type] = std::move(data);
+        }
+
+        return primitiveCache[type];
     }
 }
 

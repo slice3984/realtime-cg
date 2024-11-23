@@ -17,13 +17,50 @@
 // stb_image
 #include "stb_image.h"
 
-// Lectures
+// Misc
+#include "OrbitCamera.h"
 #include "Shader.h"
+
+// Lectures
 #include "Lectures/00-DemoLecture/Lecture00.h"
 #include "Lectures/00-ImGuiTests/ImGuiTests.h"
 #include "Lectures/01-Triangle/Lecture01.h"
 #include "Assignments/01-GLSL/Assignment01.h"
 #include "Lectures/02-MultipleDraws/Lecture02.h"
+#include "Lectures/03-MVP/Lecture03.h"
+
+
+static bool lbuttonDown = false;
+double lastX = 0.0;
+double lastY = 0.0;
+
+OrbitCamera camera{3.0f};
+
+void mouseCallback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        if (action == GLFW_PRESS) {
+            lbuttonDown = true;
+            glfwGetCursorPos(window, &lastX, &lastY);
+        } else if (action == GLFW_RELEASE) {
+            lbuttonDown = false;
+        }
+    }
+}
+
+void cursorPosCallback(GLFWwindow* window, double xpos, double ypos)
+{
+    if (lbuttonDown) {
+        double deltaX = xpos - lastX;
+        double deltaY = ypos - lastY;
+
+        camera.handleMouseDragEvent(deltaX, deltaY);
+    }
+}
+
+void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
+    camera.handleMouseScrollEvent(yOffset);
+}
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -37,7 +74,7 @@ void processInput(GLFWwindow *window) {
 
 int main() {
     // Will be replaced by a ImGui menu in the future
-    const size_t activeLecture = 4;
+    const size_t activeLecture = 5;
 
     // GLM test
     glm::vec3 test{1.0f, 2.0f, 3.0f};
@@ -64,6 +101,10 @@ int main() {
     // Make the window's context current
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetMouseButtonCallback(window, mouseCallback);
+    glfwSetCursorPosCallback(window, cursorPosCallback);
+    glfwSetScrollCallback(window, scrollCallback);
+
 
     // Load OpenGL function pointers using GLAD
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -91,6 +132,7 @@ int main() {
     lectures.push_back(std::make_unique<Lecture01>("Triangle"));
     lectures.push_back(std::make_unique<Assignment01>("Assignment 1"));
     lectures.push_back(std::make_unique<Lecture02>("Multiple draws"));
+    lectures.push_back(std::make_unique<Lecture03>("MVP", camera));
 
     lectures[activeLecture]->init();
 
@@ -105,7 +147,7 @@ int main() {
         ImGui::NewFrame();
 
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f); // Clear color
-        glClear(GL_COLOR_BUFFER_BIT); // Clear the color buffer
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear the color buffer & depth buffer
 
         // Rendering
         lectures[activeLecture]->render();
