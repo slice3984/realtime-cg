@@ -34,6 +34,7 @@ add_executable(realtime_cg
         src/GltfLoader.cpp
         src/GltfLoader.h
         src/OrbitCamera.h
+        src/Lectures/04-Lighting/Lecture04.h
 )
 
 # GLFW

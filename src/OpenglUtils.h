@@ -25,18 +25,18 @@ struct IndexBufferArray {
 
     IndexBufferArray(const std::initializer_list<GLuint> &buffer) {
         this->elemCount = buffer.size();
-        this->buffer = const_cast<GLuint*>(buffer.begin());
+        this->buffer = const_cast<GLuint *>(buffer.begin());
     }
 
     explicit IndexBufferArray(const std::vector<GLuint> &buffer) {
-        this->buffer = (GLuint*)buffer.data();
+        this->buffer = (GLuint *) buffer.data();
         this->elemCount = buffer.size();
     }
 };
 
-template <class T>
+template<class T>
 struct VertexAttribArray {
-    T* buffer;
+    T *buffer;
     std::size_t size;
     std::size_t elemCount;
     std::size_t dataTypeSize;
@@ -45,7 +45,7 @@ struct VertexAttribArray {
         elemCount = buffer.size() / size;
         assert(buffer.size() % size == 0);
 
-        this->buffer = const_cast<T*>(buffer.begin());
+        this->buffer = const_cast<T *>(buffer.begin());
 
         this->size = size;
         this->dataTypeSize = sizeof(this->buffer[0]);
@@ -55,7 +55,7 @@ struct VertexAttribArray {
         elemCount = buffer.size() / size;
         assert(buffer.size() % size == 0);
 
-        this->buffer = (T*)buffer.data();
+        this->buffer = (T *) buffer.data();
         this->size = size;
         this->dataTypeSize = sizeof(buffer.at(0));
     }
@@ -70,12 +70,12 @@ struct PrimitiveData {
 };
 
 enum class PrimitiveType {
-    CUBE
+    CUBE, SPHERE
 };
 
 namespace opengl_utils {
-    template<typename  ...Args>
-    VaoHandle generateVao(Args ...args) {
+    template<typename... Args>
+    VaoHandle generateVao(Args... args) {
         enum class GlDataType {
             FLOAT, INT, USHORT
         };
@@ -101,13 +101,13 @@ namespace opengl_utils {
             if constexpr (!std::is_same_v<T, IndexBufferArray>) {
                 ProcessedVertexArray arr;
 
-                if constexpr (std::is_same_v<T, VertexAttribArray<GLfloat>>) {
+                if constexpr (std::is_same_v<T, VertexAttribArray<GLfloat> >) {
                     arr.type = GlDataType::FLOAT;
                     arr.stride = arg.size * sizeof(GLfloat);
-                } else if constexpr (std::is_same_v<T, VertexAttribArray<GLint>>) {
+                } else if constexpr (std::is_same_v<T, VertexAttribArray<GLint> >) {
                     arr.type = GlDataType::INT;
                     arr.stride = arg.size * sizeof(GLint);
-                } else if constexpr  (std::is_same_v<T, VertexAttribArray<GLushort>>) {
+                } else if constexpr (std::is_same_v<T, VertexAttribArray<GLushort> >) {
                     arr.type = GlDataType::USHORT;
                     arr.stride = arg.size * sizeof(GLushort);
                 }
@@ -163,14 +163,17 @@ namespace opengl_utils {
 
             switch (attribArray.type) {
                 case GlDataType::FLOAT:
-                    glVertexAttribPointer(i, attribArray.size, GL_FLOAT, GL_FALSE, maxOffset, (void *)(attribArray.bufferOffset));
+                    glVertexAttribPointer(i, attribArray.size, GL_FLOAT, GL_FALSE, maxOffset,
+                                          (void *) (attribArray.bufferOffset));
                     break;
                 case GlDataType::INT:
-                    glVertexAttribPointer(i, attribArray.size, GL_INT, GL_FALSE, maxOffset, (void *)(attribArray.bufferOffset));
+                    glVertexAttribPointer(i, attribArray.size, GL_INT, GL_FALSE, maxOffset,
+                                          (void *) (attribArray.bufferOffset));
                     break;
                 // Usually color data that has to be normalized
                 case GlDataType::USHORT:
-                    glVertexAttribPointer(i, attribArray.size, GL_UNSIGNED_SHORT, GL_TRUE, maxOffset, (void *)(attribArray.bufferOffset));
+                    glVertexAttribPointer(i, attribArray.size, GL_UNSIGNED_SHORT, GL_TRUE, maxOffset,
+                                          (void *) (attribArray.bufferOffset));
             }
 
             glEnableVertexAttribArray(i);
@@ -179,7 +182,7 @@ namespace opengl_utils {
         VaoHandle handle = {
             VAO,
             false,
-            (GLuint)processedArrays[0].elemCount
+            (GLuint) processedArrays[0].elemCount
         };
 
         // Upload EBO if passed
@@ -188,7 +191,8 @@ namespace opengl_utils {
             glGenBuffers(1, &EBO);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indexBuffer.elemCount, indexBuffer.buffer, GL_STATIC_DRAW);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indexBuffer.elemCount, indexBuffer.buffer,
+                         GL_STATIC_DRAW);
 
             handle.usesEBO = true;
             handle.elemenCount = indexBuffer.elemCount;
@@ -197,7 +201,7 @@ namespace opengl_utils {
         return handle;
     }
 
-    std::vector<const GltfPrimitive*> unpackGltfScene(const GltfScene& scene);
+    std::vector<const GltfPrimitive *> unpackGltfScene(const GltfScene &scene);
 
     inline PrimitiveData getPrimitive(PrimitiveType type) {
         // Cache already loaded primitives
@@ -210,6 +214,9 @@ namespace opengl_utils {
                 case PrimitiveType::CUBE:
                     path += "test.glb";
                     break;
+                case PrimitiveType::SPHERE:
+                    path += "sphere.glb";
+                    break;
             }
 
             PrimitiveData data;
@@ -218,15 +225,15 @@ namespace opengl_utils {
             GltfLoader loader;
             GltfScene scene = loader.loadModel(path);
             auto unpacked = unpackGltfScene(scene);
-            const GltfPrimitive* firstPrimitive = unpacked[0];
-            const GltfVertexAttrib& pos = firstPrimitive->get(GltfAttribute::POSITION);
-            const GltfVertexAttrib& color = firstPrimitive->get(GltfAttribute::COLOR_0);
-            const GltfVertexAttrib& normal = firstPrimitive->get(GltfAttribute::NORMAL);
-            const GltfVertexAttrib& tangent = firstPrimitive->get(GltfAttribute::TANGENT);
+            const GltfPrimitive *firstPrimitive = unpacked[0];
+            const GltfVertexAttrib &pos = firstPrimitive->get(GltfAttribute::POSITION);
+            const GltfVertexAttrib &color = firstPrimitive->get(GltfAttribute::COLOR_0);
+            const GltfVertexAttrib &normal = firstPrimitive->get(GltfAttribute::NORMAL);
+            const GltfVertexAttrib &tangent = firstPrimitive->get(GltfAttribute::TANGENT);
 
             auto constructVector = [](const GltfVertexAttrib &attrib) -> std::vector<GLfloat> {
                 // We assume its always GLfloat
-                GLfloat* dataPtr = static_cast<GLfloat*>(attrib.buffer);
+                GLfloat *dataPtr = static_cast<GLfloat *>(attrib.buffer);
                 std::size_t vecSize = attrib.bufferSize / 4; // 4 byte for float
                 std::vector<GLfloat> vec;
                 vec.resize(vecSize);
@@ -241,7 +248,7 @@ namespace opengl_utils {
             data.tangent = constructVector(tangent);
 
             // Construct vertex color attribute buffer
-            GLushort *dataPtr = static_cast<GLushort*>(color.buffer);
+            GLushort *dataPtr = static_cast<GLushort *>(color.buffer);
             std::size_t vecSize = color.bufferSize / 2; // 2 byte for ushort
             std::vector<GLushort> vec;
             vec.resize(vecSize);
@@ -253,22 +260,25 @@ namespace opengl_utils {
             indexVec.resize(firstPrimitive->elemCount);
 
             switch (firstPrimitive->componentType) {
-                case 5121: {  // GL_UNSIGNED_BYTE
-                    GLubyte* byteBuffer = static_cast<GLubyte*>(firstPrimitive->indexBuffer);
+                case 5121: {
+                    // GL_UNSIGNED_BYTE
+                    GLubyte *byteBuffer = static_cast<GLubyte *>(firstPrimitive->indexBuffer);
                     for (size_t i = 0; i < firstPrimitive->elemCount; i++) {
                         indexVec[i] = static_cast<GLuint>(byteBuffer[i]);
                     }
                     break;
                 }
-                case 5123: {  // GL_UNSIGNED_SHORT
-                    GLushort* shortBuffer = static_cast<GLushort*>(firstPrimitive->indexBuffer);
+                case 5123: {
+                    // GL_UNSIGNED_SHORT
+                    GLushort *shortBuffer = static_cast<GLushort *>(firstPrimitive->indexBuffer);
                     for (size_t i = 0; i < firstPrimitive->elemCount; i++) {
                         indexVec[i] = static_cast<GLuint>(shortBuffer[i]);
                     }
                     break;
                 }
-                case 5125: {  // GL_UNSIGNED_INT
-                    GLuint* intBuffer = static_cast<GLuint*>(firstPrimitive->indexBuffer);
+                case 5125: {
+                    // GL_UNSIGNED_INT
+                    GLuint *intBuffer = static_cast<GLuint *>(firstPrimitive->indexBuffer);
                     for (size_t i = 0; i < firstPrimitive->elemCount; i++) {
                         indexVec[i] = intBuffer[i];
                     }
