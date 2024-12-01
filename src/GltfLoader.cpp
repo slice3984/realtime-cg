@@ -35,11 +35,97 @@ GltfScene GltfLoader::loadModel(const std::string &path) {
     }
 
     GltfScene gltfScene;
+    processImages(gltfScene, model);
+    processMaterials(gltfScene, model);
 
     processScenes(gltfScene, model);
 
     return std::move(gltfScene);
 }
+
+void GltfLoader::processImages(GltfScene &gltfScene, Model &model) {
+    for (const Image &image : model.images) {
+        gltfScene.images.emplace_back(GltfImage{
+            image.component,
+            image.pixel_type,
+            image.bits,
+            image.width,
+            image.height,
+            image.image
+        });
+    }
+}
+
+void GltfLoader::processTextures(GltfScene &gltfScene, Model &model) {
+    for (const Texture &texture : model.textures) {
+        // We ignore sampler settings
+        // texture.
+    }
+}
+
+void GltfLoader::processMaterials(GltfScene &gltfScene, Model &model) {
+    // We ignore sampler settings, retrieve the image idx directly
+    auto retrieveImageIdx = [&](const int index) -> int {
+        return model.textures[index].source;
+    };
+
+    for (const Material &material : model.materials) {
+        GltfMaterial gltfMaterial;
+        std::vector<double> baseColorFactor = material.pbrMetallicRoughness.baseColorFactor;
+        gltfMaterial.baseColorFactor = glm::vec4{baseColorFactor.at(0), baseColorFactor.at(1), baseColorFactor.at(2), baseColorFactor.at(3)};
+
+        // Processing textures
+        if (material.pbrMetallicRoughness.baseColorTexture.index >= 0) {
+            GltfTextureProperties properties;
+            properties.type = GltfTextureType::DIFFUSE;
+            int idxTexture = material.pbrMetallicRoughness.baseColorTexture.index;
+
+            properties.index = retrieveImageIdx(idxTexture);
+            gltfMaterial.textureProperties.push_back(properties);
+        }
+
+        if (material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0) {
+            GltfTextureProperties properties;
+            properties.type = GltfTextureType::METALLIC_ROUGHNESS;
+            const int idxTexture = material.pbrMetallicRoughness.metallicRoughnessTexture.index;
+
+            properties.index = retrieveImageIdx(idxTexture);
+            gltfMaterial.textureProperties.push_back(properties);
+        }
+
+        if (material.normalTexture.index >= 0) {
+            GltfTextureProperties properties;
+            properties.type = GltfTextureType::NORMAL;
+            const int idxTexture = material.normalTexture.index;
+
+            properties.index = retrieveImageIdx(idxTexture);
+            properties.property = material.normalTexture.scale;
+            gltfMaterial.textureProperties.push_back(properties);
+        }
+
+        if (material.occlusionTexture.index >= 0) {
+            GltfTextureProperties properties;
+            properties.type = GltfTextureType::OCCLUSION;
+            const int idxTexture = material.occlusionTexture.index;
+
+            properties.index = retrieveImageIdx(idxTexture);
+            properties.property = material.occlusionTexture.strength;
+            gltfMaterial.textureProperties.push_back(properties);
+        }
+
+        if (material.emissiveTexture.index >= 0) {
+            GltfTextureProperties properties;
+            properties.type = GltfTextureType::EMISSIVE;
+            const int idxTexture = material.emissiveTexture.index;
+
+            properties.index = retrieveImageIdx(idxTexture);
+            gltfMaterial.textureProperties.push_back(properties);
+        }
+
+        gltfScene.materials.push_back(std::move(gltfMaterial));
+    }
+}
+
 
 
 void GltfLoader::processScenes(GltfScene &gltfScene, Model &model) {
@@ -73,7 +159,6 @@ void GltfLoader::processScenes(GltfScene &gltfScene, Model &model) {
         }
     }
 }
-
 
 void GltfLoader::processNode(Model &model, std::vector<GltfMesh> &meshes, const Node &node) {
     // A node could be a camera, ignore in this case
@@ -139,11 +224,12 @@ void GltfLoader::processMesh(Model &model, std::vector<GltfMesh> &meshes, const 
             memcpy(gltfPrimitive.indexBuffer, &buffer.data.at(bufferView.byteOffset), bufferView.byteLength);
         }
 
+        // Handle materials
+        gltfPrimitive.materialIdx = primitive.material;
+
         gltfMesh.primitives.emplace_back(std::move(gltfPrimitive));
     }
 
     meshes.emplace_back(std::move(gltfMesh));
-
-    // TODO: Materials, textures..
 }
 

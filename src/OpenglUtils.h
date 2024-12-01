@@ -5,7 +5,6 @@
 #ifndef OPENGLUTILS_H
 #define OPENGLUTILS_H
 #include <iosfwd>
-#include <sstream>
 #include <vector>
 #include <cassert>
 #include <cstring>

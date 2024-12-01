@@ -7,6 +7,7 @@
 #ifndef GLTFLOADER_H
 #define GLTFLOADER_H
 #include <iostream>
+#include <glm/vec4.hpp>
 
 #include "tiny_gltf.h"
 
@@ -31,8 +32,9 @@ struct GltfPrimitive {
     int componentType;
     std::size_t elemCount;
     int mode;
+    int materialIdx;
 
-    const GltfVertexAttrib& get(GltfAttribute attribName) const {
+    [[nodiscard]] const GltfVertexAttrib& get(GltfAttribute attribName) const {
         if (attributes.find(attribName) == attributes.end()) {
             throw std::out_of_range("Attribute not found");
         }
@@ -53,13 +55,43 @@ struct GltfObject {
     std::vector<GltfMesh> meshes;
 };
 
+enum class GltfTextureType {
+    DIFFUSE, METALLIC_ROUGHNESS, NORMAL, OCCLUSION, EMISSIVE
+};
+
+struct GltfImage {
+    int component; // 4 - RGBA, 3, RGB, 1 - Grayscale
+    int pixelType; // 5121 - GL_UNSIGNED_BYTE; 5123 - GL_UNSIGNED_SHORT..
+    int bits; // Bits per channel
+    int width;
+    int height;
+    std::vector<unsigned char> buffer;
+};
+
+struct GltfTextureProperties {
+    GltfTextureType type;
+    int index; // Index in the images array
+    double property = 0; // Could be scale, strength..
+};
+
+struct GltfMaterial {
+    glm::vec4 baseColorFactor; // Scaling factors for R, G, B, A color channels, used as default if no texture
+    std::vector<GltfTextureProperties> textureProperties;
+};
+
 struct GltfScene {
     std::string name;
     std::vector<GltfObject> objects;
+    std::vector<GltfImage> images;
+    std::vector<GltfMaterial> materials;
 };
+
 
 class GltfLoader {
 private:
+    void processImages(GltfScene &gltfScene, Model &model);
+    void processTextures(GltfScene &gltfScene, Model &model);
+    void processMaterials(GltfScene &gltfScene, Model &model);
     void processScenes(GltfScene &gltfScene, Model &model);
     void processNode(Model &model, std::vector<GltfMesh> &meshes, const Node &node);
     void processMesh(Model &model, std::vector<GltfMesh> &meshes, const Mesh &mesh);

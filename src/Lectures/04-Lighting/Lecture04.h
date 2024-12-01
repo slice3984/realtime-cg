@@ -69,7 +69,6 @@ public:
         m_program.setFloat("u_ambientIntensity", m_ambientIntensity);
         m_program.setFloat("u_specularIntensity", m_specularIntensity);
 
-
         glDrawElements(GL_TRIANGLES, m_handleSphere.elemenCount, GL_UNSIGNED_INT, nullptr);
     }
 };
