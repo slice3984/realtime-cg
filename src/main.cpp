@@ -30,6 +30,7 @@
 #include "Lectures/03-MVP/Lecture03.h"
 #include "Lectures/04-Lighting/Lecture04.h"
 #include "Lectures/05-Textures/Lecture05.h"
+#include "Lectures/06-Textures2/Lecture06.h"
 
 
 static bool lbuttonDown = false;
@@ -76,7 +77,7 @@ void processInput(GLFWwindow *window) {
 
 int main() {
     // Will be replaced by a ImGui menu in the future
-    const size_t activeLecture = 7;
+    const size_t activeLecture = 8;
 
     // GLM test
     glm::vec3 test{1.0f, 2.0f, 3.0f};
@@ -137,7 +138,7 @@ int main() {
     lectures.push_back(std::make_unique<Lecture03>("MVP", camera));
     lectures.push_back(std::make_unique<Lecture04>("Lighting", camera));
     lectures.push_back(std::make_unique<Lecture05>("Textures", camera));
-
+    lectures.push_back(std::make_unique<Lecture06>("Textures 2", camera));
 
     lectures[activeLecture]->init();
 

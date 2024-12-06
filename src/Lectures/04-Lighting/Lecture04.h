@@ -26,9 +26,9 @@ public:
         auto data = opengl_utils::getPrimitive(PrimitiveType::SPHERE);
 
         m_handleSphere = opengl_utils::generateVao(
-            VertexAttribArray{ data.position, 3 },
-            VertexAttribArray{ data.color, 4 },
-            VertexAttribArray{ data.normal, 3 },
+            VertexAttribArray{ data.positions, 3 },
+            VertexAttribArray{ data.colors, 4 },
+            VertexAttribArray{ data.normals, 3 },
             IndexBufferArray{ data.ebo }
         );
 

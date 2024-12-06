@@ -30,10 +30,10 @@ public:
 
         m_handleCube = opengl_utils::generateVao(
             VertexAttribArray{
-                data.position, 3
+                data.positions, 3
             },
             VertexAttribArray{
-                data.color, 4
+                data.colors, 4
             },
             IndexBufferArray{
                 data.ebo

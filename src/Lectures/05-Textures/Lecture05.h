@@ -24,7 +24,7 @@ public:
                        "../src/Lectures/05-Textures/shader.frag");
 
         GltfLoader loader{};
-        GltfScene suzanne = loader.loadModel("../models/suzanne/Suzanne.gltf");
+        GltfScene suzanne = loader.loadModel("../assets/models/suzanne/Suzanne.gltf");
         GPUModelUploader uploader;
         m_renderCalls = uploader.uploadGltfModel(suzanne);
 

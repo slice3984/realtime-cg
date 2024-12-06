@@ -11,6 +11,10 @@
 
 #include "GltfLoader.h"
 #include "glad/glad.h"
+#include <stb_image.h>
+
+#include "ImageData.h"
+#include "TextureHandle.h"
 
 struct VaoHandle {
     GLuint id;
@@ -61,10 +65,11 @@ struct VertexAttribArray {
 };
 
 struct PrimitiveData {
-    std::vector<GLfloat> position;
-    std::vector<GLushort> color;
-    std::vector<GLfloat> normal;
-    std::vector<GLfloat> tangent;
+    std::vector<GLfloat> positions;
+    std::vector<GLfloat> texCoords;
+    std::vector<GLushort> colors;
+    std::vector<GLfloat> normals;
+    std::vector<GLfloat> tangents;
     std::vector<GLuint> ebo;
 };
 
@@ -207,11 +212,11 @@ namespace opengl_utils {
         static std::unordered_map<PrimitiveType, PrimitiveData> primitiveCache;
 
         if (primitiveCache.find(type) == primitiveCache.end()) {
-            std::string path = "../models/primitives/";
+            std::string path = "../assets/models/primitives/";
 
             switch (type) {
                 case PrimitiveType::CUBE:
-                    path += "test.glb";
+                    path += "cube.glb";
                     break;
                 case PrimitiveType::SPHERE:
                     path += "sphere.glb";
@@ -226,6 +231,7 @@ namespace opengl_utils {
             auto unpacked = unpackGltfScene(scene);
             const GltfPrimitive *firstPrimitive = unpacked[0];
             const GltfVertexAttrib &pos = firstPrimitive->get(GltfAttribute::POSITION);
+            const GltfVertexAttrib &texCoord = firstPrimitive->get(GltfAttribute::TEXCOORD_0);
             const GltfVertexAttrib &color = firstPrimitive->get(GltfAttribute::COLOR_0);
             const GltfVertexAttrib &normal = firstPrimitive->get(GltfAttribute::NORMAL);
             const GltfVertexAttrib &tangent = firstPrimitive->get(GltfAttribute::TANGENT);
@@ -242,9 +248,10 @@ namespace opengl_utils {
                 return vec;
             };
 
-            data.position = constructVector(pos);
-            data.normal = constructVector(normal);
-            data.tangent = constructVector(tangent);
+            data.positions = constructVector(pos);
+            data.texCoords = constructVector(texCoord);
+            data.normals = constructVector(normal);
+            data.tangents = constructVector(tangent);
 
             // Construct vertex color attribute buffer
             GLushort *dataPtr = static_cast<GLushort *>(color.buffer);
@@ -254,7 +261,7 @@ namespace opengl_utils {
 
             std::memcpy(vec.data(), dataPtr, color.bufferSize);
 
-            data.color = std::move(vec);
+            data.colors = std::move(vec);
             std::vector<GLuint> indexVec;
             indexVec.resize(firstPrimitive->elemCount);
 
@@ -295,6 +302,11 @@ namespace opengl_utils {
 
         return primitiveCache[type];
     }
+
+    ImageData loadImage(const std::string &imagePath);
+    TextureHandle createTexture(const ImageData &image, GLuint target = GL_TEXTURE_2D);
+    void updateTextureData(TextureHandle texture, const ImageData &image, GLuint target = GL_TEXTURE_2D);
+    TextureHandle loadCubemap(const std::vector<std::string> &imagePaths);
 }
 
 #endif //OPENGLUTILS_H

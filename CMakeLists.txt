@@ -37,6 +37,9 @@ add_executable(realtime_cg
         src/Lectures/04-Lighting/Lecture04.h
         src/GPUModelUploader.h
         src/Lectures/05-Textures/Lecture05.h
+        src/Lectures/06-Textures2/Lecture06.h
+        src/ImageData.h
+        src/TextureHandle.h
 )
 
 # GLFW
