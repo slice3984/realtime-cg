@@ -47,7 +47,7 @@ add_executable(realtime_cg
         src/LectureShaderProgram.h
         src/RenderQueue.h
         src/Renderer.h
-        SkyboxShaderProgram.h
+        src/SkyboxShaderProgram.h
 )
 
 # GLFW

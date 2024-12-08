@@ -4,7 +4,7 @@
 
 #ifndef SKYBOXSHADERPROGRAM_H
 #define SKYBOXSHADERPROGRAM_H
-#include "src/BaseShaderProgram.h"
+#include "BaseShaderProgram.h"
 
 
 class SkyboxShaderProgram : public BaseShaderProgram {

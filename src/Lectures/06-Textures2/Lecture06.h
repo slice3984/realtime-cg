@@ -9,7 +9,7 @@
 #include "../../RenderBase.h"
 #include "../../RenderQueue.h"
 #include "../../Renderer.h"
-#include "../../../SkyboxShaderProgram.h"
+#include "../../SkyboxShaderProgram.h"
 
 
 class Lecture06 : public RenderBase {
