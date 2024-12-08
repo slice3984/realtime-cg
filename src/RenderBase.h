@@ -10,7 +10,8 @@
 #include "../Linking/include/glad/glad.h"
 #include "../external/imgui/imgui.h"
 #include "Shader.h"
-#include "ShaderProgram.h"
+#include "BaseShaderProgram.h"
+#include "LectureShaderProgram.h"
 
 class RenderBase {
 protected:
@@ -18,7 +19,7 @@ protected:
     std::string m_vertexShaderPath;
     std::string m_fragmentShaderPath;
     GLuint m_programId{};
-    ShaderProgram m_program;
+    LectureShaderProgram m_program;
     bool m_storedProgam{false};
     std::chrono::time_point<std::chrono::system_clock> m_startTime;
 public:
@@ -48,7 +49,7 @@ protected:
             return false;
         }
 
-        ShaderProgram program;
+        LectureShaderProgram program;
 
         program.attachShader(vertexShader);
         program.attachShader(fragmentShader);

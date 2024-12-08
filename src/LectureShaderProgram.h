@@ -1,33 +1,46 @@
 //
-// Created by slice on 10/24/24.
+// Created by slice on 12/7/24.
 //
 
-#ifndef SHADERPROGRAM_H
-#define SHADERPROGRAM_H
+#ifndef LECTURESHADERPROGRAM_H
+#define LECTURESHADERPROGRAM_H
 
 #include "Shader.h"
 #include "glad/glad.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-class ShaderProgram {
+// Only really used to no break the base lecture shader logic
+class LectureShaderProgram {
 private:
     GLuint m_programId{};
-
 public:
-    ShaderProgram() {
+    LectureShaderProgram() {
         m_programId = glCreateProgram();
     }
 
-    void attachShader(const Shader &shader) {
+    void attachShader(const Shader &shader) const {
         glAttachShader(m_programId, shader.getShaderId());
     }
 
-    GLuint getProgramId() const {
+    [[nodiscard]] GLuint getProgramId() const {
         return m_programId;
     }
 
-    bool linkProgram();
+    [[nodiscard]] bool linkProgram() const {
+        glLinkProgram(m_programId);
+
+        GLint success;
+        glGetProgramiv(m_programId, GL_LINK_STATUS, &success);
+        if (!success) {
+            char infoLog[512];
+            glGetProgramInfoLog(m_programId, 512, nullptr, infoLog);
+            std::cerr << "ERROR::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+            return false;
+        }
+
+        return true;
+    }
 
     void deleteProgram() {
         glDeleteProgram(m_programId);
@@ -63,5 +76,4 @@ public:
 };
 
 
-
-#endif //SHADERPROGRAM_H
+#endif //LECTURESHADERPROGRAM_H

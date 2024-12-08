@@ -22,8 +22,8 @@ add_executable(realtime_cg
         src/Lectures/01-Triangle/Lecture01.h
         src/Shader.cpp
         src/Shader.h
-        src/ShaderProgram.cpp
-        src/ShaderProgram.h
+        src/BaseShaderProgram.cpp
+        src/BaseShaderProgram.h
         src/Lectures/00-ImGuiTests/ImGuiTests.h
         src/ImGuiWindowCreator.h
         src/Assignments/01-GLSL/Assignment01.h
@@ -40,6 +40,14 @@ add_executable(realtime_cg
         src/Lectures/06-Textures2/Lecture06.h
         src/ImageData.h
         src/TextureHandle.h
+        src/RenderCall.h
+        src/TextureType.h
+        src/RenderEntity.h
+        src/ModelShaderProgram.h
+        src/LectureShaderProgram.h
+        src/RenderQueue.h
+        src/Renderer.h
+        SkyboxShaderProgram.h
 )
 
 # GLFW

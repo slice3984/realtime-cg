@@ -77,7 +77,7 @@ void GltfLoader::processMaterials(GltfScene &gltfScene, Model &model) {
         // Processing textures
         if (material.pbrMetallicRoughness.baseColorTexture.index >= 0) {
             GltfTextureProperties properties;
-            properties.type = GltfTextureType::DIFFUSE;
+            properties.type = TextureType::DIFFUSE;
             int idxTexture = material.pbrMetallicRoughness.baseColorTexture.index;
 
             properties.index = retrieveImageIdx(idxTexture);
@@ -86,7 +86,7 @@ void GltfLoader::processMaterials(GltfScene &gltfScene, Model &model) {
 
         if (material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0) {
             GltfTextureProperties properties;
-            properties.type = GltfTextureType::METALLIC_ROUGHNESS;
+            properties.type = TextureType::METALLIC_ROUGHNESS;
             const int idxTexture = material.pbrMetallicRoughness.metallicRoughnessTexture.index;
 
             properties.index = retrieveImageIdx(idxTexture);
@@ -95,7 +95,7 @@ void GltfLoader::processMaterials(GltfScene &gltfScene, Model &model) {
 
         if (material.normalTexture.index >= 0) {
             GltfTextureProperties properties;
-            properties.type = GltfTextureType::NORMAL;
+            properties.type = TextureType::NORMAL;
             const int idxTexture = material.normalTexture.index;
 
             properties.index = retrieveImageIdx(idxTexture);
@@ -105,7 +105,7 @@ void GltfLoader::processMaterials(GltfScene &gltfScene, Model &model) {
 
         if (material.occlusionTexture.index >= 0) {
             GltfTextureProperties properties;
-            properties.type = GltfTextureType::OCCLUSION;
+            properties.type = TextureType::OCCLUSION;
             const int idxTexture = material.occlusionTexture.index;
 
             properties.index = retrieveImageIdx(idxTexture);
@@ -115,7 +115,7 @@ void GltfLoader::processMaterials(GltfScene &gltfScene, Model &model) {
 
         if (material.emissiveTexture.index >= 0) {
             GltfTextureProperties properties;
-            properties.type = GltfTextureType::EMISSIVE;
+            properties.type = TextureType::EMISSIVE;
             const int idxTexture = material.emissiveTexture.index;
 
             properties.index = retrieveImageIdx(idxTexture);

@@ -7,18 +7,8 @@
 #include <vector>
 
 #include "GltfLoader.h"
+#include "RenderCall.h"
 #include "glad/glad.h"
-
-struct RenderCall {
-    GLuint vao;
-    GLuint elemCount;
-    int componentType;
-    GLint textureDiffuse = -1;
-    GLint textureMetallicRoughness = -1;
-    GLint textureNormal = -1;
-    GLint textureOcclusion = -1;
-    GLint textureEmissive = -1;
-};
 
 class GPUModelUploader {
 private:
@@ -192,13 +182,7 @@ private:
             for (const GltfTextureProperties &properties : mat.textureProperties) {
                 const GltfImage &image = model.images[properties.index];
 
-                switch (properties.type) {
-                    case GltfTextureType::DIFFUSE: renderCall.textureDiffuse = uploadTexture(image); break;
-                    case GltfTextureType::METALLIC_ROUGHNESS: renderCall.textureMetallicRoughness = uploadTexture(image); break;
-                    case GltfTextureType::NORMAL: renderCall.textureNormal = uploadTexture(image); break;
-                    case GltfTextureType::OCCLUSION: renderCall.textureOcclusion = uploadTexture(image); break;
-                    case GltfTextureType::EMISSIVE: renderCall.textureEmissive = uploadTexture(image); break;
-                }
+                renderCall.textureHandles[properties.type] = uploadTexture(image);
             }
         }
     }

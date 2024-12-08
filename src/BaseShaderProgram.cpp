@@ -2,9 +2,9 @@
 // Created by slice on 10/24/24.
 //
 
-#include "ShaderProgram.h"
+#include "BaseShaderProgram.h"
 
-bool ShaderProgram::linkProgram() {
+bool BaseShaderProgram::linkProgram() {
     glLinkProgram(m_programId);
 
     GLint success;

@@ -9,6 +9,7 @@
 #include <iostream>
 #include <glm/vec4.hpp>
 
+#include "TextureType.h"
 #include "tiny_gltf.h"
 
 using namespace tinygltf;
@@ -55,10 +56,6 @@ struct GltfObject {
     std::vector<GltfMesh> meshes;
 };
 
-enum class GltfTextureType {
-    DIFFUSE, METALLIC_ROUGHNESS, NORMAL, OCCLUSION, EMISSIVE
-};
-
 struct GltfImage {
     int component; // 4 - RGBA, 3, RGB, 1 - Grayscale
     int pixelType; // 5121 - GL_UNSIGNED_BYTE; 5123 - GL_UNSIGNED_SHORT..
@@ -69,7 +66,7 @@ struct GltfImage {
 };
 
 struct GltfTextureProperties {
-    GltfTextureType type;
+    TextureType type;
     int index; // Index in the images array
     double property = 0; // Could be scale, strength..
 };
