@@ -14,7 +14,7 @@
 
 class Lecture06 : public RenderBase {
 public:
-    explicit Lecture06(std::string_view title, OrbitCamera &cam) : RenderBase(title), m_camera(cam) {
+    explicit Lecture06(std::string_view title, FPSCamera &cam) : RenderBase(title), m_camera(cam) {
     }
 
     void init() override {
@@ -65,7 +65,7 @@ public:
         float aspectRatio = static_cast<float>(viewport[2]) / static_cast<float>(viewport[3]);
 
         glm::mat4 view = m_camera.getViewMatrix();
-        glm::mat4 projection = glm::perspective(glm::quarter_pi<float>(), aspectRatio, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(m_camera.getFov()), aspectRatio, 0.1f, 100.0f);
 
         glUseProgram(m_modelShader.getProgramId());
         m_modelShader.setMat4f("u_view", view);
@@ -98,7 +98,7 @@ private:
     TextureHandle m_textureHandleCube;
     VaoHandle m_sphereHandle;
     VaoHandle m_cubeHandle;
-    OrbitCamera &m_camera;
+    FPSCamera &m_camera;
     glm::vec3 m_lightDirection{1.0f, 1.0f, 1.0f};
     float m_ambientIntensity = 0.1f;
     float m_specularIntensity = 64.0f;

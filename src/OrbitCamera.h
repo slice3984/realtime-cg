@@ -39,7 +39,7 @@ public:
     }
 
     void handleMouseDragEvent(double deltaX, double deltaY) {
-        float sensitivity = 0.001f;
+        float sensitivity = 0.1f;
         m_orbitPan -= deltaX * sensitivity;
         m_orbitTilt -= deltaY * sensitivity;
 

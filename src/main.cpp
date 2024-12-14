@@ -22,6 +22,7 @@
 #include "Shader.h"
 
 // Lectures
+#include "FPSCamera.h"
 #include "Lectures/00-DemoLecture/Lecture00.h"
 #include "Lectures/00-ImGuiTests/ImGuiTests.h"
 #include "Lectures/01-Triangle/Lecture01.h"
@@ -34,45 +35,90 @@
 
 
 static bool lbuttonDown = false;
-double lastX = 0.0;
-double lastY = 0.0;
+float lastX = 1280 / 2.0;
+float lastY = 960 / 2.0;
 
 OrbitCamera camera{3.0f};
+FPSCamera fpsCamera{glm::vec3{0.0f, 0.0f, 3.0f}};
 
-void mouseCallback(GLFWwindow* window, int button, int action, int mods)
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+bool firstMouse = true;
+
+void processInput(GLFWwindow *window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+        glfwSetWindowShouldClose(window, true);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        fpsCamera.processKeyboard(FORWARD, deltaTime);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        fpsCamera.processKeyboard(BACKWARD, deltaTime);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        fpsCamera.processKeyboard(LEFT, deltaTime);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        fpsCamera.processKeyboard(RIGHT, deltaTime);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        fpsCamera.processKeyboard(UP, deltaTime);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        fpsCamera.processKeyboard(DOWN, deltaTime);
+    }
+}
+
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 {
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         if (action == GLFW_PRESS) {
             lbuttonDown = true;
-            glfwGetCursorPos(window, &lastX, &lastY);
         } else if (action == GLFW_RELEASE) {
             lbuttonDown = false;
         }
     }
 }
 
-void cursorPosCallback(GLFWwindow* window, double xpos, double ypos)
+void mouseCallback(GLFWwindow* window, double xposIn, double yposIn)
 {
-    if (lbuttonDown) {
-        double deltaX = xpos - lastX;
-        double deltaY = ypos - lastY;
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
 
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float deltaX = xpos - lastX;
+    float deltaY = lastY - ypos;
+
+    lastX = xpos;
+    lastY = ypos;
+
+    fpsCamera.processMouseMovement(deltaX, deltaY);
+
+    if (lbuttonDown) {
         camera.handleMouseDragEvent(deltaX, deltaY);
     }
 }
 
 void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
     camera.handleMouseScrollEvent(yOffset);
+    fpsCamera.processMouseScroll(static_cast<float>(yOffset));
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
-}
-
-void processInput(GLFWwindow *window) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        glfwSetWindowShouldClose(window, true);
-    }
 }
 
 int main() {
@@ -104,9 +150,10 @@ int main() {
     // Make the window's context current
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetMouseButtonCallback(window, mouseCallback);
-    glfwSetCursorPosCallback(window, cursorPosCallback);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
+    glfwSetCursorPosCallback(window, mouseCallback);
     glfwSetScrollCallback(window, scrollCallback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 
     // Load OpenGL function pointers using GLAD
@@ -138,12 +185,16 @@ int main() {
     lectures.push_back(std::make_unique<Lecture03>("MVP", camera));
     lectures.push_back(std::make_unique<Lecture04>("Lighting", camera));
     lectures.push_back(std::make_unique<Lecture05>("Textures", camera));
-    lectures.push_back(std::make_unique<Lecture06>("Textures 2", camera));
+    lectures.push_back(std::make_unique<Lecture06>("Textures 2", fpsCamera));
 
     lectures[activeLecture]->init();
 
     // Main loop
     while (!glfwWindowShouldClose(window)) {
+        float currentFrame = static_cast<float>(glfwGetTime());
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
         // Poll and handle events
         processInput(window);
 
