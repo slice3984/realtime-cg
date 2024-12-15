@@ -52,6 +52,7 @@ add_executable(realtime_cg
         src/ImGuiWindows.h
         src/Utils.h
         src/Lectures/07-Framebuffer/Lecture07.h
+        src/Shaders/TilingShader/TilingShaderProgram.h
 )
 
 # GLFW

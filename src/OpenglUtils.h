@@ -332,7 +332,8 @@ inline PrimitiveData getPrimitive(PrimitiveType type) {
 
 
     ImageData loadImage(const std::string &imagePath);
-    TextureHandle createTexture(const ImageData &image, GLuint target = GL_TEXTURE_2D);
+    TextureHandle createTexture(int width, int height, int nChannels = 4, bool repeatTexture = false, GLuint target = GL_TEXTURE_2D);
+    TextureHandle createTexture(const ImageData &image, bool repeatTexture = false, GLuint target = GL_TEXTURE_2D);
     void updateTextureData(TextureHandle texture, const ImageData &image, GLuint target = GL_TEXTURE_2D);
     TextureHandle loadCubemap(const std::vector<std::string> &imagePaths);
 }

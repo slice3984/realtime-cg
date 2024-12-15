@@ -36,10 +36,10 @@ namespace opengl_utils {
         }
     }
 
-    TextureHandle createTexture(const ImageData &image, GLuint target) {
+    TextureHandle createTexture(int width, int height, int nChannels, bool repeatTexture, GLuint target) {
         int format = GL_RGBA;
 
-        switch (image.nChannels) {
+        switch (nChannels) {
             case 1: format = GL_RED;
             break;
             case 2: format = GL_RG;
@@ -54,18 +54,29 @@ namespace opengl_utils {
 
         if (target == GL_TEXTURE_CUBE_MAP) {
             for (GLuint i = 0; i < 6; ++i) {
-                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA8, image.width, image.height, 0, format, GL_UNSIGNED_BYTE, nullptr);
+                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA8, width, height, 0, format, GL_UNSIGNED_BYTE, nullptr);
             }
         } else if (target == GL_TEXTURE_2D) {
-            glTexImage2D(target, 0, GL_RGBA8, image.width, image.height, 0, format, GL_UNSIGNED_BYTE, nullptr);
+            glTexImage2D(target, 0, GL_RGBA8, width, height, 0, format, GL_UNSIGNED_BYTE, nullptr);
+            glGenerateMipmap(GL_TEXTURE_2D);
         }
 
-        glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        if (repeatTexture) {
+            glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        } else {
+            glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        }
+
         glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        return { handle, image.width, image.height, format };
+        return { handle, width, height, format };
+    }
+
+    TextureHandle createTexture(const ImageData &image, bool repeatTexture, GLuint target) {
+        return createTexture(image.width, image.height, image.nChannels, repeatTexture, target);
     }
 
     void updateTextureData(TextureHandle texture, const ImageData &image, GLuint target) {
@@ -98,7 +109,7 @@ namespace opengl_utils {
         }
 
         // We assume all images got the same size
-        TextureHandle cubeTex = createTexture(images[0], GL_TEXTURE_CUBE_MAP);
+        TextureHandle cubeTex = createTexture(images[0], false, GL_TEXTURE_CUBE_MAP);
 
         // Set all sides of the cube map texture
         for (std::size_t i = 0; i < images.size(); i++) {

@@ -37,7 +37,7 @@
 
 
 static bool lbuttonDown = false;
-bool disableCamera = true;
+bool disableCamera = false;
 float lastX = 1280 / 2.0;
 float lastY = 960 / 2.0;
 
@@ -186,7 +186,7 @@ int main() {
     glfwSetCursorPosCallback(window, mouseCallback);
     glfwSetKeyCallback(window, keyCallback);
     glfwSetScrollCallback(window, scrollCallback);
-    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 
     // Load OpenGL function pointers using GLAD

@@ -37,6 +37,10 @@ public:
         return m_renderData.at(name).renderEntity;
     }
 
+    const std::string &getName() const {
+        return m_name;
+    }
+
 private:
     friend class Renderer;
 

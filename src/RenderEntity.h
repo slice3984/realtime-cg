@@ -29,9 +29,9 @@ public:
     [[nodiscard]] glm::mat4 getModelMatrix() const {
         glm::mat4 model = glm::mat4(1.0f);
 
-        model = glm::scale(model, m_scale);
-        model = glm::rotate(model, glm::radians(m_rotationAngle), m_rotationAxis);
         model = glm::translate(model, m_translation);
+        model = glm::rotate(model, glm::radians(m_rotationAngle), m_rotationAxis);
+        model = glm::scale(model, m_scale);
 
         return model;
     }
