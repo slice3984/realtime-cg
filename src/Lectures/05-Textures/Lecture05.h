@@ -5,16 +5,14 @@
 #ifndef LECTURE05_H
 #define LECTURE05_H
 #include "../../GPUModelUploader.h"
-#include "../../ModelShaderProgram.h"
+#include "../../Shaders/ModelShader/ModelShaderProgram.h"
 #include "../../OrbitCamera.h"
 #include "../../RenderBase.h"
 
 
 class Lecture05 : public RenderBase {
 private:
-    ModelShaderProgram m_modelShader{
-        "../src/Lectures/05-Textures/shader.vert", "../src/Lectures/05-Textures/shader.frag"
-    };
+    ModelShaderProgram m_modelShader;
     std::vector<RenderCall> m_renderCalls;
     OrbitCamera &m_camera;
     glm::vec3 m_lightDirection{1.0f, 1.0f, 1.0f};

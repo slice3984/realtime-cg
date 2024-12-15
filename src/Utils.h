@@ -16,7 +16,7 @@ namespace Utils {
         for (int i = 0; i < 4; ++i) {
             std::cout << "    ";
             for (int j = 0; j < 4; ++j) {
-                std::cout << std::fixed << std::setprecision(6) << mat[i][j];
+                std::cout << std::fixed << std::setprecision(6) << mat[i][j] << "f";
                 if (j < 3) std::cout << ", ";
             }
             std::cout << (i < 3 ? "," : "") << std::endl;

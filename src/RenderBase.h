@@ -10,7 +10,7 @@
 #include "../Linking/include/glad/glad.h"
 #include "../external/imgui/imgui.h"
 #include "Shader.h"
-#include "BaseShaderProgram.h"
+#include "Shaders/BaseShaderProgram.h"
 #include "LectureShaderProgram.h"
 
 class RenderBase {

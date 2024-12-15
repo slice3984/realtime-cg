@@ -6,11 +6,10 @@
 #define LECTURE06_H
 #include "../../ImGuiWindows.h"
 #include "../../OpenglUtils.h"
-#include "../../OrbitCamera.h"
 #include "../../RenderBase.h"
 #include "../../RenderQueue.h"
 #include "../../Renderer.h"
-#include "../../SkyboxShaderProgram.h"
+#include "../../Shaders/SkyboxShader/SkyboxShaderProgram.h"
 
 
 class Lecture06 : public RenderBase {
@@ -88,14 +87,8 @@ public:
 
 private:
     RenderQueue m_renderQueue{"Scene"};
-    ModelShaderProgram m_modelShader{
-        "../src/Lectures/06-Textures2/shader.vert",
-        "../src/Lectures/06-Textures2/shader.frag"
-    };
-    SkyboxShaderProgram m_skyboxShader{
-        "../src/Lectures/06-Textures2/skybox.vert",
-        "../src/Lectures/06-Textures2/skybox.frag"
-    };
+    ModelShaderProgram m_modelShader;
+    SkyboxShaderProgram m_skyboxShader;
     Renderer m_renderer;
     TextureHandle m_textureHandle;
     TextureHandle m_textureHandleCube;

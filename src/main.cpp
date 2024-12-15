@@ -33,10 +33,11 @@
 #include "Lectures/04-Lighting/Lecture04.h"
 #include "Lectures/05-Textures/Lecture05.h"
 #include "Lectures/06-Textures2/Lecture06.h"
+#include "Lectures/07-Framebuffer/Lecture07.h"
 
 
 static bool lbuttonDown = false;
-bool disableCamera = false;
+bool disableCamera = true;
 float lastX = 1280 / 2.0;
 float lastY = 960 / 2.0;
 
@@ -154,7 +155,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 
 int main() {
     // Will be replaced by a ImGui menu in the future
-    const size_t activeLecture = 8;
+    const size_t activeLecture = 9;
 
     // GLM test
     glm::vec3 test{1.0f, 2.0f, 3.0f};
@@ -185,7 +186,7 @@ int main() {
     glfwSetCursorPosCallback(window, mouseCallback);
     glfwSetKeyCallback(window, keyCallback);
     glfwSetScrollCallback(window, scrollCallback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 
     // Load OpenGL function pointers using GLAD
@@ -219,6 +220,7 @@ int main() {
     lectures.push_back(std::make_unique<Lecture04>("Lighting", camera));
     lectures.push_back(std::make_unique<Lecture05>("Textures", camera));
     lectures.push_back(std::make_unique<Lecture06>("Textures 2", fpsCamera));
+    lectures.push_back(std::make_unique<Lecture07>("Framebuffer", fpsCamera));
 
     lectures[activeLecture]->init();
 

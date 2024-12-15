@@ -74,7 +74,7 @@ struct PrimitiveData {
 };
 
 enum class PrimitiveType {
-    CUBE, SPHERE
+    CUBE, SPHERE, PLANE
 };
 
 namespace opengl_utils {
@@ -207,101 +207,129 @@ namespace opengl_utils {
 
     std::vector<const GltfPrimitive *> unpackGltfScene(const GltfScene &scene);
 
-    inline PrimitiveData getPrimitive(PrimitiveType type) {
-        // Cache already loaded primitives
-        static std::unordered_map<PrimitiveType, PrimitiveData> primitiveCache;
+inline PrimitiveData getPrimitive(PrimitiveType type) {
+    // Cache already loaded primitives
+    static std::unordered_map<PrimitiveType, PrimitiveData> primitiveCache;
 
-        if (primitiveCache.find(type) == primitiveCache.end()) {
-            std::string path = "../assets/models/primitives/";
+    if (primitiveCache.find(type) == primitiveCache.end()) {
+        std::string path = "../assets/models/primitives/";
 
-            switch (type) {
-                case PrimitiveType::CUBE:
-                    path += "cube.glb";
-                    break;
-                case PrimitiveType::SPHERE:
-                    path += "sphere.glb";
-                    break;
-            }
-
-            PrimitiveData data;
-
-            // We assume there's only one primitive in every scene used here
-            GltfLoader loader;
-            GltfScene scene = loader.loadModel(path);
-            auto unpacked = unpackGltfScene(scene);
-            const GltfPrimitive *firstPrimitive = unpacked[0];
-            const GltfVertexAttrib &pos = firstPrimitive->get(GltfAttribute::POSITION);
-            const GltfVertexAttrib &texCoord = firstPrimitive->get(GltfAttribute::TEXCOORD_0);
-            const GltfVertexAttrib &color = firstPrimitive->get(GltfAttribute::COLOR_0);
-            const GltfVertexAttrib &normal = firstPrimitive->get(GltfAttribute::NORMAL);
-            const GltfVertexAttrib &tangent = firstPrimitive->get(GltfAttribute::TANGENT);
-
-            auto constructVector = [](const GltfVertexAttrib &attrib) -> std::vector<GLfloat> {
-                // We assume its always GLfloat
-                GLfloat *dataPtr = static_cast<GLfloat *>(attrib.buffer);
-                std::size_t vecSize = attrib.bufferSize / 4; // 4 byte for float
-                std::vector<GLfloat> vec;
-                vec.resize(vecSize);
-
-                std::memcpy(vec.data(), dataPtr, attrib.bufferSize);
-
-                return vec;
-            };
-
-            data.positions = constructVector(pos);
-            data.texCoords = constructVector(texCoord);
-            data.normals = constructVector(normal);
-            data.tangents = constructVector(tangent);
-
-            // Construct vertex color attribute buffer
-            GLushort *dataPtr = static_cast<GLushort *>(color.buffer);
-            std::size_t vecSize = color.bufferSize / 2; // 2 byte for ushort
-            std::vector<GLushort> vec;
-            vec.resize(vecSize);
-
-            std::memcpy(vec.data(), dataPtr, color.bufferSize);
-
-            data.colors = std::move(vec);
-            std::vector<GLuint> indexVec;
-            indexVec.resize(firstPrimitive->elemCount);
-
-            switch (firstPrimitive->componentType) {
-                case 5121: {
-                    // GL_UNSIGNED_BYTE
-                    GLubyte *byteBuffer = static_cast<GLubyte *>(firstPrimitive->indexBuffer);
-                    for (size_t i = 0; i < firstPrimitive->elemCount; i++) {
-                        indexVec[i] = static_cast<GLuint>(byteBuffer[i]);
-                    }
-                    break;
-                }
-                case 5123: {
-                    // GL_UNSIGNED_SHORT
-                    GLushort *shortBuffer = static_cast<GLushort *>(firstPrimitive->indexBuffer);
-                    for (size_t i = 0; i < firstPrimitive->elemCount; i++) {
-                        indexVec[i] = static_cast<GLuint>(shortBuffer[i]);
-                    }
-                    break;
-                }
-                case 5125: {
-                    // GL_UNSIGNED_INT
-                    GLuint *intBuffer = static_cast<GLuint *>(firstPrimitive->indexBuffer);
-                    for (size_t i = 0; i < firstPrimitive->elemCount; i++) {
-                        indexVec[i] = intBuffer[i];
-                    }
-                    break;
-                }
-                default: {
-                    std::cerr << "Unsupported componentType: " << firstPrimitive->componentType << std::endl;
-                    break;
-                }
-            }
-
-            data.ebo = std::move(indexVec);
-            primitiveCache[type] = std::move(data);
+        switch (type) {
+            case PrimitiveType::CUBE:
+                path += "cube.glb";
+                break;
+            case PrimitiveType::SPHERE:
+                path += "sphere.glb";
+                break;
+            case PrimitiveType::PLANE:
+                path += "plane.glb";
+                break;
         }
 
-        return primitiveCache[type];
+        PrimitiveData data;
+
+        // We assume there's only one primitive in every scene used here
+        GltfLoader loader;
+        GltfScene scene = loader.loadModel(path);
+        auto unpacked = unpackGltfScene(scene);
+        const GltfPrimitive *firstPrimitive = unpacked[0];
+        const GltfVertexAttrib &pos = firstPrimitive->get(GltfAttribute::POSITION);
+        const GltfVertexAttrib &texCoord = firstPrimitive->get(GltfAttribute::TEXCOORD_0);
+        const GltfVertexAttrib &normal = firstPrimitive->get(GltfAttribute::NORMAL);
+        const GltfVertexAttrib &tangent = firstPrimitive->get(GltfAttribute::TANGENT);
+
+        // Check if color attribute exists, otherwise use a default white color
+        const GltfVertexAttrib *color = nullptr;
+        try {
+            color = &firstPrimitive->get(GltfAttribute::COLOR_0);
+        } catch (const std::exception& e) {
+            // Color attribute is missing, use default white color
+        }
+
+        auto constructVector = [](const GltfVertexAttrib &attrib) -> std::vector<GLfloat> {
+            // We assume its always GLfloat
+            GLfloat *dataPtr = static_cast<GLfloat *>(attrib.buffer);
+            std::size_t vecSize = attrib.bufferSize / 4; // 4 byte for float
+            std::vector<GLfloat> vec;
+            vec.resize(vecSize);
+
+            std::memcpy(vec.data(), dataPtr, attrib.bufferSize);
+
+            return vec;
+        };
+
+        data.positions = constructVector(pos);
+        data.texCoords = constructVector(texCoord);
+        data.normals = constructVector(normal);
+        data.tangents = constructVector(tangent);
+
+        if (color) {
+            GLfloat *dataPtr = static_cast<GLfloat *>(color->buffer);
+            std::size_t vecSize = color->bufferSize / 4; // 4 byte for float
+            std::vector<GLfloat> tempVec;
+            tempVec.resize(vecSize);
+
+            std::memcpy(tempVec.data(), dataPtr, color->bufferSize);
+
+            std::vector<GLushort> convertedColors;
+            convertedColors.reserve(tempVec.size());
+            for (size_t i = 0; i < tempVec.size(); i++) {
+                convertedColors.push_back(static_cast<GLushort>(tempVec[i] * 65535));
+            }
+
+            data.colors = std::move(convertedColors);
+        } else {
+            size_t numVertices = data.positions.size() / 3;
+            std::vector<GLushort> defaultColor(numVertices * 4, 0);
+            for (size_t i = 3; i < defaultColor.size(); i += 4) {
+                defaultColor[i] = 65535;
+            }
+            data.colors = std::move(defaultColor);
+        }
+
+        std::vector<GLuint> indexVec;
+        indexVec.resize(firstPrimitive->elemCount);
+
+        switch (firstPrimitive->componentType) {
+            case 5121: {
+                // GL_UNSIGNED_BYTE
+                GLubyte *byteBuffer = static_cast<GLubyte *>(firstPrimitive->indexBuffer);
+                for (size_t i = 0; i < firstPrimitive->elemCount; i++) {
+                    indexVec[i] = static_cast<GLuint>(byteBuffer[i]);
+                }
+                break;
+            }
+            case 5123: {
+                // GL_UNSIGNED_SHORT
+                GLushort *shortBuffer = static_cast<GLushort *>(firstPrimitive->indexBuffer);
+                for (size_t i = 0; i < firstPrimitive->elemCount; i++) {
+                    indexVec[i] = static_cast<GLuint>(shortBuffer[i]);
+                }
+                break;
+            }
+            case 5125: {
+                // GL_UNSIGNED_INT
+                GLuint *intBuffer = static_cast<GLuint *>(firstPrimitive->indexBuffer);
+                for (size_t i = 0; i < firstPrimitive->elemCount; i++) {
+                    indexVec[i] = intBuffer[i];
+                }
+                break;
+            }
+            default: {
+                std::cerr << "Unsupported componentType: " << firstPrimitive->componentType << std::endl;
+                break;
+            }
+        }
+
+        data.ebo = std::move(indexVec);
+        primitiveCache[type] = std::move(data);
     }
+
+    return primitiveCache[type];
+}
+
+
+
 
     ImageData loadImage(const std::string &imagePath);
     TextureHandle createTexture(const ImageData &image, GLuint target = GL_TEXTURE_2D);
