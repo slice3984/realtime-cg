@@ -32,6 +32,24 @@ public:
             ImGui::Text("%s: %ld", name.data(), var);
         } else if constexpr (std::is_same_v<T, long long>) {
             ImGui::Text("%s: %lld", name.data(), var);
+        } else if constexpr (std::is_same_v<T, glm::mat4>) {
+            ImGui::Text("%s:", name.data());
+            float* ptr = glm::value_ptr(var);
+            ImGui::PushItemWidth(50.0f);
+
+            for (int i = 0; i < 4; ++i) {
+                for (int j = 0; j < 4; ++j) {
+                    char value[64];
+                    snprintf(value, sizeof(value), "%.3f", ptr[i * 4 + j]);
+
+                    ImGui::PushID(i * 4 + j);
+                    ImGui::InputText("", value, sizeof(value), ImGuiInputTextFlags_ReadOnly);
+                    if (j < 3) ImGui::SameLine();
+                    ImGui::PopID();
+                }
+            }
+
+            ImGui::PopItemWidth();
         } else {
             ImGui::Text("%s: Unsupported type", name.data());
         }
@@ -85,6 +103,12 @@ public:
         ImGui::SetWindowFontScale(1.0f);
 
         ImGui::Dummy(ImVec2(0.0f, 5.0f));
+
+        return *this;
+    }
+
+    ImGuiWindowCreator &text(std::string_view text) {
+        ImGui::Text(text.data());
 
         return *this;
     }

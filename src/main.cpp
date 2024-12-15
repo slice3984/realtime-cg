@@ -23,6 +23,7 @@
 
 // Lectures
 #include "FPSCamera.h"
+#include "Utils.h"
 #include "Lectures/00-DemoLecture/Lecture00.h"
 #include "Lectures/00-ImGuiTests/ImGuiTests.h"
 #include "Lectures/01-Triangle/Lecture01.h"
@@ -35,6 +36,7 @@
 
 
 static bool lbuttonDown = false;
+bool disableCamera = false;
 float lastX = 1280 / 2.0;
 float lastY = 960 / 2.0;
 
@@ -45,39 +47,66 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 bool firstMouse = true;
 
-void processInput(GLFWwindow *window)
-{
+void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        fpsCamera.processKeyboard(FORWARD, deltaTime);
-    }
+    if (!disableCamera) {
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+            fpsCamera.processKeyboard(FORWARD, deltaTime);
+        }
 
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        fpsCamera.processKeyboard(BACKWARD, deltaTime);
-    }
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+            fpsCamera.processKeyboard(BACKWARD, deltaTime);
+        }
 
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        fpsCamera.processKeyboard(LEFT, deltaTime);
-    }
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+            fpsCamera.processKeyboard(LEFT, deltaTime);
+        }
 
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        fpsCamera.processKeyboard(RIGHT, deltaTime);
-    }
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+            fpsCamera.processKeyboard(RIGHT, deltaTime);
+        }
 
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        fpsCamera.processKeyboard(UP, deltaTime);
-    }
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            fpsCamera.processKeyboard(UP, deltaTime);
+        }
 
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        fpsCamera.processKeyboard(DOWN, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+            fpsCamera.processKeyboard(DOWN, deltaTime);
+        }
     }
 }
 
-void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
-{
+void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    if (action == GLFW_PRESS) {
+        switch (key) {
+            case GLFW_KEY_ESCAPE:
+                glfwSetWindowShouldClose(window, true);
+                break;
+            case GLFW_KEY_LEFT_SHIFT:
+                if (!disableCamera) {
+                    fpsCamera.processKeyboard(DOWN, deltaTime);
+                }
+                break;
+            case GLFW_KEY_M:
+                Utils::generateMatrixCode(fpsCamera.getViewMatrix());
+                break;
+            case GLFW_KEY_LEFT_CONTROL:
+                disableCamera = !disableCamera;
+                if (disableCamera) {
+                    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                } else {
+                    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                }
+                break;
+        }
+    }
+}
+
+
+void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         if (action == GLFW_PRESS) {
             lbuttonDown = true;
@@ -87,13 +116,15 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
     }
 }
 
-void mouseCallback(GLFWwindow* window, double xposIn, double yposIn)
-{
+void mouseCallback(GLFWwindow *window, double xposIn, double yposIn) {
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
-    if (firstMouse)
-    {
+    if (disableCamera) {
+        return;
+    }
+
+    if (firstMouse) {
         lastX = xpos;
         lastY = ypos;
         firstMouse = false;
@@ -112,12 +143,12 @@ void mouseCallback(GLFWwindow* window, double xposIn, double yposIn)
     }
 }
 
-void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
+void scrollCallback(GLFWwindow *window, double xOffset, double yOffset) {
     camera.handleMouseScrollEvent(yOffset);
     fpsCamera.processMouseScroll(static_cast<float>(yOffset));
 }
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
@@ -140,7 +171,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Create a windowed mode window and its OpenGL context
-    GLFWwindow* window = glfwCreateWindow(1280, 960, "Demo", nullptr, nullptr);
+    GLFWwindow *window = glfwCreateWindow(1280, 960, "Demo", nullptr, nullptr);
     if (!window) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -152,12 +183,13 @@ int main() {
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
     glfwSetCursorPosCallback(window, mouseCallback);
+    glfwSetKeyCallback(window, keyCallback);
     glfwSetScrollCallback(window, scrollCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 
     // Load OpenGL function pointers using GLAD
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
         std::cerr << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
@@ -167,7 +199,8 @@ int main() {
     // Initialize ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io; // Initialize ImGui IO
+    ImGuiIO &io = ImGui::GetIO();
+    (void) io; // Initialize ImGui IO
 
     // Setup ImGui style
     ImGui::StyleColorsDark();
@@ -176,7 +209,7 @@ int main() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 420"); // Use GLSL version 420
 
-    std::vector<std::unique_ptr<RenderBase>> lectures;
+    std::vector<std::unique_ptr<RenderBase> > lectures;
     lectures.push_back(std::make_unique<ImGuiTests>("ImGui Tests"));
     lectures.push_back(std::make_unique<Lecture00>("Demo Lecture"));
     lectures.push_back(std::make_unique<Lecture01>("Triangle"));
@@ -195,7 +228,7 @@ int main() {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // Poll and handle events
+        // Poll and handle events (Continious input / Camera)
         processInput(window);
 
         // Start the ImGui frame

@@ -8,6 +8,8 @@
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
+#include "ImGuiWindowCreator.h"
+
 enum CameraMovement {
     FORWARD,
     BACKWARD,
@@ -58,6 +60,12 @@ public:
 
     [[nodiscard]] float getFov() const {
         return m_zoom;
+    }
+
+    void displayViewMatrix() const {
+        ImGuiWindowCreator{"FPS Camera view matrix"}
+        .display("View", getViewMatrix())
+        .end();
     }
 
     void processKeyboard(CameraMovement direction, float deltaTime)

@@ -4,6 +4,7 @@
 
 #ifndef LECTURE06_H
 #define LECTURE06_H
+#include "../../ImGuiWindows.h"
 #include "../../OpenglUtils.h"
 #include "../../OrbitCamera.h"
 #include "../../RenderBase.h"
@@ -81,6 +82,8 @@ public:
 
         m_renderQueue["suzanne"].setRotationAngle((glm::sin(getElapsedTime())) * 90.0f);
         m_renderer.renderAllQueues();
+        m_camera.displayViewMatrix();
+        ImGuiWindows::controls();
     }
 
 private:

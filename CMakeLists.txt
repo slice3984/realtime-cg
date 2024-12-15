@@ -49,6 +49,8 @@ add_executable(realtime_cg
         src/Renderer.h
         src/SkyboxShaderProgram.h
         src/FPSCamera.h
+        src/ImGuiWindows.h
+        src/Utils.h
 )
 
 # GLFW
