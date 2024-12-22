@@ -10,6 +10,8 @@ set(IMGUI_SOURCES
         external/imgui/imgui_tables.cpp
         external/imgui/backends/imgui_impl_opengl3.cpp
         external/imgui/backends/imgui_impl_glfw.cpp
+        src/Final/SimplexNoise.h
+        src/Final/SimplexNoise.h
 )
 
 add_executable(realtime_cg
@@ -53,6 +55,10 @@ add_executable(realtime_cg
         src/Utils.h
         src/Lectures/07-Framebuffer/Lecture07.h
         src/Shaders/TilingShader/TilingShaderProgram.h
+        src/Final/Project.h
+        src/Final/TerrainGenerator.h
+        src/Shaders/TerrainShader/TerrainShaderProgram.h
+        src/Final/SimplexNoise.h
 )
 
 # GLFW

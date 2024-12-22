@@ -28,6 +28,7 @@
 #include "Lectures/00-ImGuiTests/ImGuiTests.h"
 #include "Lectures/01-Triangle/Lecture01.h"
 #include "Assignments/01-GLSL/Assignment01.h"
+#include "Final/Project.h"
 #include "Lectures/02-MultipleDraws/Lecture02.h"
 #include "Lectures/03-MVP/Lecture03.h"
 #include "Lectures/04-Lighting/Lecture04.h"
@@ -42,7 +43,7 @@ float lastX = 1280 / 2.0;
 float lastY = 960 / 2.0;
 
 OrbitCamera camera{3.0f};
-FPSCamera fpsCamera{glm::vec3{0.0f, 0.0f, 3.0f}};
+FPSCamera fpsCamera{glm::vec3{0.0f, 0.0f, 0.0f}};
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -155,7 +156,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 
 int main() {
     // Will be replaced by a ImGui menu in the future
-    const size_t activeLecture = 9;
+    const size_t activeLecture = 0;
 
     // GLM test
     glm::vec3 test{1.0f, 2.0f, 3.0f};
@@ -186,7 +187,7 @@ int main() {
     glfwSetCursorPosCallback(window, mouseCallback);
     glfwSetKeyCallback(window, keyCallback);
     glfwSetScrollCallback(window, scrollCallback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 
     // Load OpenGL function pointers using GLAD
@@ -211,6 +212,7 @@ int main() {
     ImGui_ImplOpenGL3_Init("#version 420"); // Use GLSL version 420
 
     std::vector<std::unique_ptr<RenderBase> > lectures;
+    lectures.push_back(std::make_unique<Project>("Terrain", fpsCamera));
     lectures.push_back(std::make_unique<ImGuiTests>("ImGui Tests"));
     lectures.push_back(std::make_unique<Lecture00>("Demo Lecture"));
     lectures.push_back(std::make_unique<Lecture01>("Triangle"));

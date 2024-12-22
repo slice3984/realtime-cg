@@ -9,6 +9,7 @@
 #include <glm/ext/matrix_transform.hpp>
 
 #include "ImGuiWindowCreator.h"
+#include "Final/SimplexNoise.h"
 
 enum CameraMovement {
     FORWARD,
@@ -21,7 +22,7 @@ enum CameraMovement {
 
 const float YAW = -90.0f;
 const float PITCH = 0.0f;
-const float SPEED = 7.0f;
+const float SPEED = 60.0f;
 const float SENSITIVITY = 0.04f;
 const float ZOOM = 45.0f;
 
@@ -56,6 +57,10 @@ public:
 
     [[nodiscard]] glm::vec3 getCamPos() const {
         return m_position;
+    }
+
+    void updateHeight(const float height) {
+        m_position.y = height;
     }
 
     [[nodiscard]] float getFov() const {
