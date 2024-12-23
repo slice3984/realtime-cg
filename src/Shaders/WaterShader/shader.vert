@@ -1,19 +1,21 @@
 #version 420
-layout (location = 0) in vec2 aPos; // x, z pos
+layout (location = 0) in vec2 aPos;
 
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
 uniform vec3 u_camPos;
+uniform float u_time;
 
-// Terrain uniforms
 uniform float u_terrainHeight;
 uniform float u_scale;
 uniform float u_persistance;
 uniform float u_lucunarity;
 uniform int u_octaves;
 
-out float o_height;
+out vec3 f_normal;
+out vec3 f_worldPos;
+
 vec3 mod289(vec3 x) {
     return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
@@ -66,13 +68,34 @@ float snoise(vec2 v)
     return 130.0 * dot(m, g);
 }
 
-out float o_minHeight;
-out float o_maxHeight;
+const float pi = 3.14159265358979323846;
 
 void main() {
     vec2 worldPosCam = aPos + u_camPos.xz;
 
-    // Noise parameters
+    float height = 0.0f;
+    float dx = 0.0f;
+    float dy = 0.0f;
+
+    // Combine multiple sine waves with different frequencies
+    for (int i = 0; i < 6; i++) {
+        float waveFreq = 1.25f * pi / (30.0f - (i * 4.0));
+        float waveAmplitude = pow(0.6f, i);
+        float phaseShift = u_time * 0.5f * float(i);
+
+        float f = waveFreq * (aPos.x + aPos.y) + phaseShift;
+
+        height += waveAmplitude * (sin(f) + 0.5f);
+
+        float derivative = waveAmplitude * waveFreq * cos(f);
+        dx += derivative;
+        dy += derivative;
+    }
+
+    vec3 gradient = vec3(dx, dy, -1.0f);
+    f_normal = normalize(gradient);
+
+    // Use the known height using simplex noise to determine if the waves should be cut off
     float noiseHeight = 0.0f;
     float amplitude = 1.0f;
     float frequency = 1.0f;
@@ -84,12 +107,13 @@ void main() {
     }
 
     noiseHeight = u_terrainHeight * (noiseHeight + 1.0f) * 0.5f;
+    float normalizedHeight = noiseHeight / u_terrainHeight;
 
-    o_minHeight = 0;
-    o_maxHeight = u_terrainHeight;
-    o_height = noiseHeight;
+    float noiseInfluence = clamp((0.2 - normalizedHeight) / 0.2, 0.0, 1.0);
 
-    vec4 worldPos = u_model * vec4(worldPosCam.x, noiseHeight, worldPosCam.y, 1.0f);
+    height *= noiseInfluence;
 
+    vec4 worldPos = u_model * vec4(worldPosCam.x, 2.5f + height, worldPosCam.y, 1.0f);
+    f_worldPos = worldPos.xyz;
     gl_Position = u_projection * u_view * worldPos;
 }

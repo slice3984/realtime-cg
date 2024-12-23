@@ -59,6 +59,8 @@ add_executable(realtime_cg
         src/Final/TerrainGenerator.h
         src/Shaders/TerrainShader/TerrainShaderProgram.h
         src/Final/SimplexNoise.h
+        src/Shaders/WaterShader/WaterShaderProgram.h
+        src/GeometryUtils.h
 )
 
 # GLFW
