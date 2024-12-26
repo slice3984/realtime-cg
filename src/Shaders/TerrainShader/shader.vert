@@ -1,10 +1,11 @@
 #version 420
 layout (location = 0) in vec2 aPos; // x, z pos
+layout (location = 1) in vec2 aTexCoord;
 
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
-uniform vec3 u_camPos;
+uniform vec3 u_camPos; // For view transformations, not texture
 
 // Terrain uniforms
 uniform float u_terrainHeight;
@@ -14,6 +15,8 @@ uniform float u_lucunarity;
 uniform int u_octaves;
 
 out float o_height;
+out vec2 f_texCoord;
+
 vec3 mod289(vec3 x) {
     return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
@@ -70,6 +73,7 @@ out float o_minHeight;
 out float o_maxHeight;
 
 void main() {
+    f_texCoord = aTexCoord;
     vec2 worldPosCam = aPos + u_camPos.xz;
 
     // Noise parameters

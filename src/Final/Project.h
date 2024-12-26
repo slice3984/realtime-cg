@@ -5,6 +5,7 @@
 #ifndef PROJECT_H
 #define PROJECT_H
 #include "TerrainGenerator.h"
+#include "TerrainPatchLODGenerator.h"
 #include "../FPSCamera.h"
 #include "../OpenglUtils.h"
 #include "../Renderer.h"
@@ -22,9 +23,22 @@ public:
     explicit  Project(std::string_view title, FPSCamera &cam) : RenderBase(title), m_cam(cam) {}
 
     void init() override {
+        TerrainPatch p = TerrainPatchLODGenerator::generateBasePatch(1024 * 2, 2);
+        TerrainPatchLODGenerator::stitchPatchEdge(p, STITCHED_EDGE::TOP);
+        //TerrainPatchLODGenerator::stitchPatchEdge(p, STITCHED_EDGE::BOTTOM);
+        //TerrainPatchLODGenerator::stitchPatchEdge(p, STITCHED_EDGE::LEFT);
+        //TerrainPatchLODGenerator::stitchPatchEdge(p, STITCHED_EDGE::RIGHT);
+
+
+        h = TerrainPatchLODGenerator::generateTerrainPatchHandle(p);
+
+        RenderCall mc = {
+            h.VAO, h.elementCount, GL_UNSIGNED_INT
+        };
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
         // Terrain
         RenderEntity skybox = generateSkybox();
-
         // Terrain - Water
 
         geometry_utils::TriangulatedPlaneMesh waterMesh = geometry_utils::generateTriangulatedPlaneMesh(400, 2, true);
@@ -37,11 +51,17 @@ public:
         m_renderQueue
         .setShader(&m_skyboxShader)
         .addEntity("skybox", skybox)
+        .setShader(&m_modelShader)
+        .addEntity("mesh", {
+            mc
+        });
+
+        /*
         .setShader(&m_terrainShader)
         .addEntity("terrain", { m_terrainGenerator.getRenderCall() })
         .setShader(&m_waterShader)
         .addEntity("water", { waterMeshRc });
-
+*/
         m_renderer.addRenderQueue(&m_renderQueue);
     }
 
@@ -60,6 +80,7 @@ public:
         m_modelShader.setVec3f("u_cameraPos", m_cam.getCamPos());
         m_modelShader.setFloat("u_ambientIntensity", m_ambientIntensity);
         m_modelShader.setFloat("u_specularIntensity", m_specularIntensity);
+
 
         glUseProgram(m_skyboxShader.getProgramId());
         m_skyboxShader.setMat4f("u_view", view);
@@ -119,6 +140,7 @@ private:
     Renderer m_renderer;
     RenderQueue m_renderQueue{"scene"};
     GLuint m_skyboxHandle;
+    TerrainPatchHandle h;
 
     // Shaders
     ModelShaderProgram m_modelShader;

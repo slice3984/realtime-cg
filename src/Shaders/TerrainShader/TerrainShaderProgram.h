@@ -21,6 +21,11 @@ public:
         if (setModelMatrix) {
             setMat4f("u_model", renderEntity.getModelMatrix());
         }
+
+        this->setInt("u_texDiffuse", 0);
+        auto it = renderCall.textureHandles.find(TextureType::DIFFUSE);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, it->second);
     }
 };
 

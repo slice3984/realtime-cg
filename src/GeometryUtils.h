@@ -19,6 +19,7 @@ namespace geometry_utils {
     TriangulatedPlaneMesh generateTriangulatedPlaneMesh(const int size, const int spacing, const bool center) {
         std::vector<GLfloat> vertices;
         std::vector<GLuint> indices;
+        std::vector<GLfloat> texCoords;
 
         // Generate vertices
         float offset = center ? (size - 1) * spacing / 2.0f : 0.0f;
@@ -31,6 +32,9 @@ namespace geometry_utils {
 
                 vertices.push_back(x);
                 vertices.push_back(z);
+
+                vertices.push_back((x + offset) / size);
+                vertices.push_back((z + offset) / size);
             }
         }
 
@@ -72,7 +76,9 @@ namespace geometry_utils {
         // VBO
         glGenBuffers(1, &VBO);
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * (2 * sizeof(GLfloat)), mesh.vertices.data(), GL_STATIC_DRAW);
+
+        // XZ Coord, TexCoord
+        glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(GLfloat), mesh.vertices.data(), GL_STATIC_DRAW);
 
         // EBO
         glGenBuffers(1, &EBO);
@@ -80,8 +86,11 @@ namespace geometry_utils {
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(GLuint), mesh.indices.data(), GL_STATIC_DRAW);
 
         // Vertex attribs
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (void*)nullptr);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)nullptr);
         glEnableVertexAttribArray(0);
+
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+        glEnableVertexAttribArray(1);
 
         glBindVertexArray(0);
 

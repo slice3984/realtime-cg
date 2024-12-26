@@ -7,6 +7,8 @@
 #include <vector>
 
 #include "../GeometryUtils.h"
+#include "../ImageData.h"
+#include "../OpenglUtils.h"
 #include "../../Linking/include/glad/glad.h"
 
 class TerrainGenerator {
@@ -16,14 +18,18 @@ public:
         : m_gridSize(gridSize), m_gridSpacing(gridSpacing) {
 
         geometry_utils::TriangulatedPlaneMesh mesh = geometry_utils::generateTriangulatedPlaneMesh(gridSize, gridSpacing, true);
+
         m_VAO = geometry_utils::uploadTriangulatedPlaneMeshToGPU(mesh);
         m_vertices = mesh.vertices;
         m_indices = mesh.indices;
+
+        loadAndUploadTextures();
     }
 
     [[nodiscard]] RenderCall getRenderCall() const {
         return {
-            m_VAO, (GLuint)m_indices.size(), GL_UNSIGNED_INT
+            m_VAO, (GLuint)m_indices.size(), GL_UNSIGNED_INT,
+            { { TextureType::DIFFUSE, m_texSand.handle }}
         };
     }
 
@@ -48,7 +54,16 @@ private:
     int m_gridSpacing;
     std::vector<GLfloat> m_vertices;
     std::vector<GLuint> m_indices;
+
+    // Textures
+    TextureHandle m_texSand;
     GLuint m_VAO;
+
+    void loadAndUploadTextures() {
+        ImageData sandTexImg = opengl_utils::loadImage("../assets/textures/terrain/mud.png");
+        m_texSand = opengl_utils::createTexture(sandTexImg, true);
+        opengl_utils::updateTextureData(m_texSand, sandTexImg);
+    }
 };
 
 #endif //TERRAINGENERATOR_H
