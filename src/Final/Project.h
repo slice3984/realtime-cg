@@ -5,6 +5,7 @@
 #ifndef PROJECT_H
 #define PROJECT_H
 #include "TerrainGenerator.h"
+#include "TerrainManager.h"
 #include "TerrainPatchLODGenerator.h"
 #include "../FPSCamera.h"
 #include "../OpenglUtils.h"
@@ -23,19 +24,11 @@ public:
     explicit  Project(std::string_view title, FPSCamera &cam) : RenderBase(title), m_cam(cam) {}
 
     void init() override {
-        TerrainPatch p = TerrainPatchLODGenerator::generateBasePatch(1024 * 2, 2);
-        TerrainPatchLODGenerator::stitchPatchEdge(p, STITCHED_EDGE::TOP);
-        //TerrainPatchLODGenerator::stitchPatchEdge(p, STITCHED_EDGE::BOTTOM);
-        //TerrainPatchLODGenerator::stitchPatchEdge(p, STITCHED_EDGE::LEFT);
-        //TerrainPatchLODGenerator::stitchPatchEdge(p, STITCHED_EDGE::RIGHT);
-
-
-        h = TerrainPatchLODGenerator::generateTerrainPatchHandle(p);
 
         RenderCall mc = {
             h.VAO, h.elementCount, GL_UNSIGNED_INT
         };
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
 
         // Terrain
         RenderEntity skybox = generateSkybox();
@@ -52,16 +45,8 @@ public:
         .setShader(&m_skyboxShader)
         .addEntity("skybox", skybox)
         .setShader(&m_modelShader)
-        .addEntity("mesh", {
-            mc
-        });
-
-        /*
-        .setShader(&m_terrainShader)
-        .addEntity("terrain", { m_terrainGenerator.getRenderCall() })
         .setShader(&m_waterShader)
         .addEntity("water", { waterMeshRc });
-*/
         m_renderer.addRenderQueue(&m_renderQueue);
     }
 
@@ -95,6 +80,7 @@ public:
         m_terrainShader.setFloat("u_lucunarity", m_terrainLucunarity);
         m_terrainShader.setInt("u_octaves", m_terrainOctaves);
         m_terrainShader.setFloat("u_terrainHeight", m_terrainHeight);
+        m_terrainManager.update(m_cam.getCamPos());
 
         glUseProgram(m_waterShader.getProgramId());
         m_waterShader.setMat4f("u_view", view);
@@ -121,15 +107,21 @@ public:
             m_terrainLucunarity
             );
 
-        //m_cam.updateHeight(height + 1.0f);
+        //m_cam.updateHeight(height + 2.0f);
 
-        ImGuiWindowCreator{"Terrain parmeters"}
+        ImGuiWindowCreator terrainWindow{"Terrain parameters"};
+        terrainWindow
         .slider("Terrain height", &m_terrainHeight, 10.0f, 200.0f)
         .slider("Scale", &m_terrainScale, 1.0f, 300.0f)
         .slider("Persistance", &m_terrainPersistence, 0.1f, 1.0f)
         .slider("Lucunarity", &m_terrainLucunarity, 1.0f, 10.0f)
-        .slider("Octaves", &m_terrainOctaves, 1, 10)
-        .end();
+        .slider("Octaves", &m_terrainOctaves, 1, 10);
+
+        if (ImGui::Button("Toggle Wireframe")) {
+            toggleTerrainWireframe();
+        }
+
+        terrainWindow.end();
 
         m_renderer.renderAllQueues();
     }
@@ -153,12 +145,24 @@ private:
     float m_ambientIntensity = 0.3f;
     float m_specularIntensity = 64.0f;
 
-    // Terrain parameters
+    // Terrain
+    TerrainManager m_terrainManager{128, m_terrainShader};
+    bool m_terrainWireframe{false};
     float m_terrainHeight{30.0f};
     float m_terrainScale{135.0f};
     float m_terrainPersistence{0.244f};
     float m_terrainLucunarity{10.0f};
     int m_terrainOctaves{4};
+
+    void toggleTerrainWireframe() {
+        m_terrainWireframe = !m_terrainWireframe;
+
+        if (m_terrainWireframe) {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        } else {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+    }
 
     // Used to setup base uniforms common in majority of shaders
     // Most for projection, lighting

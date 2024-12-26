@@ -1,6 +1,5 @@
 #version 420
 layout (location = 0) in vec2 aPos; // x, z pos
-layout (location = 1) in vec2 aTexCoord;
 
 uniform mat4 u_model;
 uniform mat4 u_view;
@@ -8,6 +7,7 @@ uniform mat4 u_projection;
 uniform vec3 u_camPos; // For view transformations, not texture
 
 // Terrain uniforms
+uniform vec2 u_chunkOffset;
 uniform float u_terrainHeight;
 uniform float u_scale;
 uniform float u_persistance;
@@ -73,8 +73,9 @@ out float o_minHeight;
 out float o_maxHeight;
 
 void main() {
-    f_texCoord = aTexCoord;
-    vec2 worldPosCam = aPos + u_camPos.xz;
+    f_texCoord = aPos;
+    //vec2 worldPosCam = aPos + u_camPos.xz;
+    vec2 worldPosCam = aPos.xy;
 
     // Noise parameters
     float noiseHeight = 0.0f;
@@ -82,7 +83,7 @@ void main() {
     float frequency = 1.0f;
 
     for (int i = 0; i < u_octaves; i++) {
-        noiseHeight += amplitude * snoise(worldPosCam / (u_scale * frequency));
+        noiseHeight += amplitude * snoise((worldPosCam +  u_chunkOffset) / (u_scale * frequency));
         amplitude *= u_persistance;
         frequency *= u_lucunarity;
     }

@@ -62,6 +62,9 @@ add_executable(realtime_cg
         src/Shaders/WaterShader/WaterShaderProgram.h
         src/GeometryUtils.h
         src/Final/TerrainPatchLODGenerator.h
+        src/Final/TerrainManager.h
+        src/Final/ChunkLODMesh.h
+        src/Final/TerrainChunk.h
 )
 
 # GLFW
