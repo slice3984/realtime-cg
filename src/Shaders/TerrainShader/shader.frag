@@ -4,22 +4,63 @@ in float o_height;
 in float o_minHeight;
 in float o_maxHeight;
 in vec2 f_texCoord;
+in vec3 f_worldPos;
 
 out vec4 o_fragColor;
 
-uniform sampler2D u_texDiffuse;
+uniform sampler2D u_texLayerOne;
+uniform sampler2D u_texLayerTwo;
+
+// Lighting
+uniform vec3 u_lightDirection;
+uniform vec3 u_cameraPos;
+uniform float u_ambientIntensity;
+uniform float u_specularIntensity;
+
+// Terrain
+const float waterLevel = 0.1;
+const float lowLevel = 0.35;
+const float highLevel = 1.0;
+const float blendRange = 0.3;
+
 void main() {
     float normalizedHeight = (o_height - o_minHeight) / (o_maxHeight - o_minHeight);
 
-    if (normalizedHeight < 0.2) {
-       discard;
-    } else if (normalizedHeight < 0.3) {
-        o_fragColor = texture(u_texDiffuse, f_texCoord / 64.0f);
-    } else if (normalizedHeight < 0.6) {
-        o_fragColor = vec4(0.0, 1.0, 0.0, 1.0);
-    } else if (normalizedHeight < 0.8) {
-        o_fragColor = vec4(0.3, 0.3, 0.3, 1.0);
-    } else {
-        o_fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    // Discard water level pixels
+    if (normalizedHeight < waterLevel) {
+        discard;
     }
+
+    vec3 layerOneColor = texture(u_texLayerOne, f_texCoord / 32.0).xyz;
+    vec3 layerTwoColor = texture(u_texLayerTwo, f_texCoord / 32.0).xyz;
+
+    vec3 deadGrassTint = vec3(0.45, 0.37, 0.25);
+    layerTwoColor = mix(layerTwoColor, deadGrassTint, 0.1);
+
+    // Calculate blend factor
+    float blendFactor = smoothstep(lowLevel - blendRange, lowLevel + blendRange, normalizedHeight) *
+    (1.0 - smoothstep(highLevel - blendRange, highLevel + blendRange, normalizedHeight));
+
+    vec3 color = mix(layerOneColor, layerTwoColor, blendFactor);
+
+    // Normals
+    float dx = dFdx(o_height);
+    float dz = dFdy(o_height);
+    vec3 normal = normalize(vec3(-dx, 1.0, -dz));
+
+    // Lighting
+    vec3 lightDir = normalize(u_lightDirection);
+    vec3 viewDirection = normalize(u_cameraPos - f_worldPos);
+
+    float ambient = u_ambientIntensity;
+    float diffuse = max(0.0f, dot(normal, lightDir) * (0.5f - ambient));
+
+    vec3 halfWay = normalize(viewDirection + lightDir);
+    float specular = max(0.0, dot(normal, halfWay));
+    specular = pow(specular, u_specularIntensity);
+
+    float lightIntensity = ambient + diffuse + specular;
+    color *= lightIntensity;
+
+    o_fragColor = vec4(color, 1.0f);
 }

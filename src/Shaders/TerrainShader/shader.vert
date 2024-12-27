@@ -16,6 +16,7 @@ uniform int u_octaves;
 
 out float o_height;
 out vec2 f_texCoord;
+out vec3 f_worldPos;
 
 vec3 mod289(vec3 x) {
     return x - floor(x * (1.0 / 289.0)) * 289.0;
@@ -74,7 +75,6 @@ out float o_maxHeight;
 
 void main() {
     f_texCoord = aPos;
-    //vec2 worldPosCam = aPos + u_camPos.xz;
     vec2 worldPosCam = aPos.xy;
 
     // Noise parameters
@@ -90,11 +90,13 @@ void main() {
 
     noiseHeight = u_terrainHeight * (noiseHeight + 1.0f) * 0.5f;
 
+
     o_minHeight = 0;
     o_maxHeight = u_terrainHeight;
     o_height = noiseHeight;
 
     vec4 worldPos = u_model * vec4(worldPosCam.x, noiseHeight, worldPosCam.y, 1.0f);
+    f_worldPos = worldPos.xyz;
 
     gl_Position = u_projection * u_view * worldPos;
 }

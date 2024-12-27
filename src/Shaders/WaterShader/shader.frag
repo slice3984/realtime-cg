@@ -3,6 +3,7 @@
 in vec3 f_normal;
 in vec3 f_worldPos;
 out vec4 o_fragColor;
+in float f_normalizedTerrainHeight;
 
 uniform vec3 u_camPos;
 uniform float u_ambientIntensity;
@@ -12,6 +13,10 @@ uniform vec3 u_lightDirection;
 uniform samplerCube u_skybox;
 
 void main() {
+    if (f_normalizedTerrainHeight > 0.15) {
+        discard;
+    }
+
     vec3 lightDir = normalize(u_lightDirection);
     vec3 viewDirection = normalize(u_camPos - f_worldPos);
     vec3 normal = normalize(f_normal);
@@ -35,7 +40,7 @@ void main() {
 
     vec4 finalColor = mix(vec4(lightIntensity, lightIntensity, lightIntensity, 1.0), reflectionColor, reflectionStrength);
 
-    finalColor.rgb *= vec3(0.3, 0.5, 0.0);
+    finalColor.rgb *= vec3(0.6, 0.2, 0.0);
 
     o_fragColor = finalColor;
 }

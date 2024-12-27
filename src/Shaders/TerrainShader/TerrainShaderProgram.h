@@ -14,6 +14,7 @@ public:
         m_stateDescriptor.cullFaceEnabled = true;
         m_stateDescriptor.cullFaceMode = GL_BACK;
         m_stateDescriptor.depthTestEnabled = true;
+        m_stateDescriptor.blendingEnabled = true;
     }
 
     void preRender(const RenderEntity &renderEntity, const RenderCall &renderCall, bool setModelMatrix) override {

@@ -15,6 +15,7 @@ uniform int u_octaves;
 
 out vec3 f_normal;
 out vec3 f_worldPos;
+out float f_normalizedTerrainHeight;
 
 vec3 mod289(vec3 x) {
     return x - floor(x * (1.0 / 289.0)) * 289.0;
@@ -108,12 +109,13 @@ void main() {
 
     noiseHeight = u_terrainHeight * (noiseHeight + 1.0f) * 0.5f;
     float normalizedHeight = noiseHeight / u_terrainHeight;
+    f_normalizedTerrainHeight = normalizedHeight;
 
-    float noiseInfluence = clamp((0.2 - normalizedHeight) / 0.2, 0.0, 1.0);
+    float noiseInfluence = clamp((0.1 - normalizedHeight) / 0.1, 0.0, 1.0);
 
     height *= noiseInfluence;
 
-    vec4 worldPos = u_model * vec4(worldPosCam.x, 2.5f + height, worldPosCam.y, 1.0f);
+    vec4 worldPos = u_model * vec4(worldPosCam.x, abs(noiseHeight) + height, worldPosCam.y, 1.0f);
     f_worldPos = worldPos.xyz;
     gl_Position = u_projection * u_view * worldPos;
 }
