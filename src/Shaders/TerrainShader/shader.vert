@@ -1,10 +1,17 @@
-#version 420
-layout (location = 0) in vec2 aPos; // x, z pos
+#version 430
+struct VertexData {
+    vec3 pos;
+    vec3 normal;
+};
+
+layout (std430, binding = 0) buffer VertexDataBuffer {
+    VertexData data[];
+};
 
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
-uniform vec3 u_camPos; // For view transformations, not texture
+uniform vec3 u_camPos;
 
 // Terrain uniforms
 uniform vec2 u_chunkOffset;
@@ -74,8 +81,11 @@ out float o_minHeight;
 out float o_maxHeight;
 
 void main() {
-    f_texCoord = aPos;
-    vec2 worldPosCam = aPos.xy;
+    vec3 position = data[gl_VertexID].pos;
+    vec3 normal = data[gl_VertexID].normal;
+
+    f_texCoord = position.xz;
+    vec2 worldPosCam = position.xz;
 
     // Noise parameters
     float noiseHeight = 0.0f;
@@ -89,7 +99,6 @@ void main() {
     }
 
     noiseHeight = u_terrainHeight * (noiseHeight + 1.0f) * 0.5f;
-
 
     o_minHeight = 0;
     o_maxHeight = u_terrainHeight;

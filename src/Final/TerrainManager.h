@@ -6,8 +6,8 @@
 #define TERRAINMANAGER_H
 #include <vector>
 #include <glm/glm.hpp>
-#include "ChunkLODMesh.h"
 #include "TerrainChunk.h"
+#include "TerrainPatchLODGenerator.h"
 #include "../Shaders/TerrainShader/TerrainShaderProgram.h"
 
 
@@ -91,13 +91,12 @@ public:
         return glm::vec3{worldPosXZ.x, getHeight(glm::vec3{worldPosXZ.x, 0.0f, worldPosXZ.y}), worldPosXZ.y};
     }
 
-    //glm::vec3 getNormal()
-
 private:
     int m_chunkSize;
-    std::unordered_map<int, ChunkLODMesh> m_lodChunkMeshes; // LOD, Meshes
+    LODBufferInfo m_meshBufferPositions; // Contains buffer positions of all LODs and Meshes
     std::vector<std::vector<TerrainChunk> > m_terrainGrid;
     TerrainShaderProgram m_terrainShader;
+    TerrainBufferHandles m_terrainBufferHandles;
 
     // Textures
     TextureHandle m_texLayerOne;
@@ -113,32 +112,15 @@ private:
     const float &m_lucunarity;
 
     void generateChunkMeshes() {
-        // Generate meshes with 3 LODs (0, 1, 2)
-        for (int lod = 0; lod < 3; lod++) {
-            ChunkLODMesh lodMesh;
 
-            TerrainPatch unstitchedPatch = TerrainPatchLODGenerator::generateBasePatch(m_chunkSize, lod);
-            TerrainPatchHandle unstitchedHandle = TerrainPatchLODGenerator::generateTerrainPatchHandle(unstitchedPatch);
-            lodMesh.unstitchedMeshVAO = unstitchedHandle.VAO;
-            lodMesh.unstitchedMeshElemCount = unstitchedHandle.elementCount;
+        m_meshBufferPositions = TerrainPatchLODGenerator::generateMultiLODBuffers(m_chunkSize, 2);
 
-            for (const auto edge: {
-                     STITCHED_EDGE::LEFT, STITCHED_EDGE::TOP, STITCHED_EDGE::RIGHT, STITCHED_EDGE::BOTTOM
-                 }) {
-                // Create new meshes since they get modified at stitching
-                TerrainPatch patch = TerrainPatchLODGenerator::generateBasePatch(m_chunkSize, lod);
+        // Generate and set up VAO/EBO/SSBO
+        m_terrainBufferHandles = TerrainPatchLODGenerator::generateTerrainBufferHandles(m_meshBufferPositions);
 
-                // Generate additional midpoint vetices for stitching
-                TerrainPatchLODGenerator::stitchPatchEdge(patch, edge);
-
-                // Triangulate and upload to GPU
-                TerrainPatchHandle stitchedHandle = TerrainPatchLODGenerator::generateTerrainPatchHandle(patch);
-
-                lodMesh.stitchedMeshes[edge] = {stitchedHandle.VAO, stitchedHandle.elementCount};
-            }
-
-            m_lodChunkMeshes[lod] = std::move(lodMesh);
-        }
+        // Cleanup
+        glBindVertexArray(0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
     void uploadTextures() {
@@ -177,27 +159,28 @@ private:
                 chunk.lod = lod;
 
                 // Check if and where stitching is required
-                ChunkLODMesh &mesh = m_lodChunkMeshes[lod];
+                LODBufferPos meshPos = m_meshBufferPositions.lodMeshes[lod];
+
                 if (row > 0 && calculateLod(row - 1, column) < lod) {
                     // Top
-                    chunk.mesh.VAO = mesh.stitchedMeshes[STITCHED_EDGE::TOP].VAO;
-                    chunk.mesh.elemCount = mesh.stitchedMeshes[STITCHED_EDGE::TOP].elemCount;
+                    chunk.indexBufferOffset = meshPos.stitchedMeshes[STITCHED_EDGE::TOP].indexOffset;
+                    chunk.drawCount = meshPos.stitchedMeshes[STITCHED_EDGE::TOP].indexCount;
                 } else if (column < 4 && calculateLod(row, column + 1) < lod) {
                     // Right
-                    chunk.mesh.VAO = mesh.stitchedMeshes[STITCHED_EDGE::RIGHT].VAO;
-                    chunk.mesh.elemCount = mesh.stitchedMeshes[STITCHED_EDGE::RIGHT].elemCount;
+                    chunk.indexBufferOffset = meshPos.stitchedMeshes[STITCHED_EDGE::RIGHT].indexOffset;
+                    chunk.drawCount = meshPos.stitchedMeshes[STITCHED_EDGE::RIGHT].indexCount;
                 } else if (row < 4 && calculateLod(row + 1, column) < lod) {
                     // Bottom
-                    chunk.mesh.VAO = mesh.stitchedMeshes[STITCHED_EDGE::BOTTOM].VAO;
-                    chunk.mesh.elemCount = mesh.stitchedMeshes[STITCHED_EDGE::BOTTOM].elemCount;
+                    chunk.indexBufferOffset = meshPos.stitchedMeshes[STITCHED_EDGE::BOTTOM].indexOffset;
+                    chunk.drawCount = meshPos.stitchedMeshes[STITCHED_EDGE::BOTTOM].indexCount;
                 } else if (column > 0 && calculateLod(row, column - 1) < lod) {
                     // Left
-                    chunk.mesh.VAO = mesh.stitchedMeshes[STITCHED_EDGE::LEFT].VAO;
-                    chunk.mesh.elemCount = mesh.stitchedMeshes[STITCHED_EDGE::LEFT].elemCount;
+                    chunk.indexBufferOffset = meshPos.stitchedMeshes[STITCHED_EDGE::LEFT].indexOffset;
+                    chunk.drawCount = meshPos.stitchedMeshes[STITCHED_EDGE::LEFT].indexCount;
                 } else {
                     // No stitching
-                    chunk.mesh.VAO = mesh.unstitchedMeshVAO;
-                    chunk.mesh.elemCount = mesh.unstitchedMeshElemCount;
+                    chunk.indexBufferOffset = meshPos.baseMesh.indexOffset;
+                    chunk.drawCount = meshPos.baseMesh.indexCount;
                 }
 
                 m_terrainGrid[row][column] = chunk;
@@ -207,6 +190,8 @@ private:
 
     void renderGrid() {
         m_terrainShader.use();
+
+        // Texture setup
         m_terrainShader.setInt("u_texLayerOne", 0);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_texLayerOne.handle);
@@ -215,11 +200,19 @@ private:
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, m_texLayerTwo.handle);
 
+        glBindVertexArray(m_terrainBufferHandles.VAO);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_terrainBufferHandles.SSBO);
+
+        // Render chunks
         for (auto &row: m_terrainGrid) {
             for (auto &chunk: row) {
                 chunk.render(m_terrainShader);
             }
         }
+
+        // Cleanup
+        glBindVertexArray(0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
     }
 };
 

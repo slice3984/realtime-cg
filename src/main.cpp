@@ -35,6 +35,7 @@
 #include "Lectures/05-Textures/Lecture05.h"
 #include "Lectures/06-Textures2/Lecture06.h"
 #include "Lectures/07-Framebuffer/Lecture07.h"
+#include "Lectures/08-SSBOTest/Lecture08.h"
 
 
 static bool lbuttonDown = false;
@@ -169,7 +170,7 @@ int main() {
 
     // Set OpenGL version and profile
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Create a windowed mode window and its OpenGL context
@@ -209,7 +210,7 @@ int main() {
 
     // Setup Platform/Renderer bindings
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 420"); // Use GLSL version 420
+    ImGui_ImplOpenGL3_Init("#version 430"); // Use GLSL version 430
 
     std::vector<std::unique_ptr<RenderBase> > lectures;
     lectures.push_back(std::make_unique<Project>("Terrain", fpsCamera));
@@ -223,6 +224,7 @@ int main() {
     lectures.push_back(std::make_unique<Lecture05>("Textures", camera));
     lectures.push_back(std::make_unique<Lecture06>("Textures 2", fpsCamera));
     lectures.push_back(std::make_unique<Lecture07>("Framebuffer", fpsCamera));
+    lectures.push_back(std::make_unique<Lecture08>("SSBO Test"));
 
     lectures[activeLecture]->init();
 

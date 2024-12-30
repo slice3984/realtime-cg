@@ -63,8 +63,8 @@ add_executable(realtime_cg
         src/GeometryUtils.h
         src/Final/TerrainPatchLODGenerator.h
         src/Final/TerrainManager.h
-        src/Final/ChunkLODMesh.h
         src/Final/TerrainChunk.h
+        src/Lectures/08-SSBOTest/Lecture08.h
 )
 
 # GLFW

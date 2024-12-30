@@ -1,4 +1,4 @@
-#version 420
+#version 430
 layout (location = 0) in vec3 aPos;
 
 uniform mat4 u_view;

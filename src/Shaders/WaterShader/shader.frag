@@ -1,4 +1,4 @@
-#version 420
+#version 430
 
 in vec3 f_normal;
 in vec3 f_worldPos;

@@ -1,4 +1,4 @@
-#version 420
+#version 430
 
 in float o_height;
 in float o_minHeight;

@@ -29,7 +29,6 @@ public:
             h.VAO, h.elementCount, GL_UNSIGNED_INT
         };
 
-
         // Terrain
         RenderEntity skybox = generateSkybox();
         // Terrain - Water
@@ -42,7 +41,7 @@ public:
         };
 
         GltfLoader loader{};
-        GltfScene suzanne = loader.loadModel("../assets/models/suzanne/Suzanne.gltf");
+        GltfScene suzanne = loader.loadModel("../assets/models/tv.glb");
         GPUModelUploader uploader;
         std::vector<RenderCall> suzanneCalls = uploader.uploadGltfModel(suzanne);
 
@@ -95,7 +94,7 @@ public:
         m_waterShader.setFloat("u_terrainHeight", m_terrainHeight);
 
 
-        glm::vec3 localPos = glm::vec3(32.0f, 0.0f, 32.0f);
+        glm::vec3 localPos = glm::vec3(64.0f, 0.0f, 64.0f);
         const TerrainChunk &chunk = m_terrainManager.getTerrainChunk(2, 2);
 
         glm::vec3 normal = m_terrainManager.calculateNormal(localPos, chunk);
@@ -104,7 +103,7 @@ public:
 
         float rotationAngle = glm::acos(glm::dot(modelUp, normal));
         m_renderQueue["suzanne"].setTranslation(
-            m_terrainManager.getWorldSpacePositionInChunk(localPos, chunk) + glm::vec3(0.0f, 10.0f, 0.0f));
+            m_terrainManager.getWorldSpacePositionInChunk({64.0f, 64.0f}, chunk) + glm::vec3(0.0f, 10.0f, 0.0f));
         m_renderQueue["suzanne"].setRotationAxis(rotationAxis);
         m_renderQueue["suzanne"].setRotationAngle(glm::degrees(rotationAngle));
         m_renderQueue["suzanne"].setScale(glm::vec3{10.0f});
@@ -125,6 +124,7 @@ public:
         m_terrainShader.setFloat("u_ambientIntensity", m_ambientIntensity);
         m_terrainShader.setFloat("u_specularIntensity", m_specularIntensity);
         m_terrainManager.update(m_cam.getCamPos());
+
 
         float height = m_terrainManager.getHeight(m_cam.getCamPos());
 
@@ -148,11 +148,13 @@ public:
 
 private:
     FPSCamera &m_cam;
-    TerrainGenerator m_terrainGenerator{400, 1};
+    //TerrainGenerator m_terrainGenerator{400, 1};
     Renderer m_renderer;
     RenderQueue m_renderQueue{"scene"};
     GLuint m_skyboxHandle;
     TerrainPatchHandle h;
+    LODBufferInfo test;
+    GLuint ssbo, ebo, vao;
 
     // Shaders
     ModelShaderProgram m_modelShader;
