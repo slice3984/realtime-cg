@@ -5,6 +5,8 @@
 #ifndef TERRAINCHUNK_H
 #define TERRAINCHUNK_H
 #include <glm/glm.hpp>
+
+#include "TerrainPatchLODGenerator.h"
 #include "../Shaders/TerrainShader/TerrainShaderProgram.h"
 
 class TerrainChunk {
@@ -12,6 +14,8 @@ public:
     int lod;
     glm::vec2 pos;
 
+    MeshBufferPosition bufferPos;
+    float gridSpacing;
     GLuint indexBufferOffset;
     GLuint drawCount;
 
@@ -21,7 +25,7 @@ public:
 
         shader.setMat4f("u_model", model);
         shader.setVec2f("u_chunkOffset", pos);
-        glDrawElements(GL_TRIANGLES, drawCount, GL_UNSIGNED_INT, (void*)(indexBufferOffset * sizeof(GLuint)));
+        glDrawElements(GL_TRIANGLES, bufferPos.indexCount, GL_UNSIGNED_INT, (void*)(bufferPos.indexOffset * sizeof(GLuint)));
     }
 };
 

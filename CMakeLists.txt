@@ -65,6 +65,7 @@ add_executable(realtime_cg
         src/Final/TerrainManager.h
         src/Final/TerrainChunk.h
         src/Lectures/08-SSBOTest/Lecture08.h
+        src/ComputeShader.h
 )
 
 # GLFW

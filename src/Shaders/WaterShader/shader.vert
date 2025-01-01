@@ -1,6 +1,15 @@
 #version 430
 layout (location = 0) in vec2 aPos;
 
+struct VertexData {
+    vec3 pos;
+    vec3 normal;
+};
+
+layout (std430, binding = 0) buffer VertexDataBuffer {
+    VertexData data[];
+};
+
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
@@ -96,26 +105,15 @@ void main() {
     vec3 gradient = vec3(dx, dy, -1.0f);
     f_normal = normalize(gradient);
 
-    // Use the known height using simplex noise to determine if the waves should be cut off
-    float noiseHeight = 0.0f;
-    float amplitude = 1.0f;
-    float frequency = 1.0f;
-
-    for (int i = 0; i < u_octaves; i++) {
-        noiseHeight += amplitude * snoise(worldPosCam / (u_scale * frequency));
-        amplitude *= u_persistance;
-        frequency *= u_lucunarity;
-    }
-
-    noiseHeight = u_terrainHeight * (noiseHeight + 1.0f) * 0.5f;
-    float normalizedHeight = noiseHeight / u_terrainHeight;
+    // Use the known height to determine if the waves should be cut off
+    float normalizedHeight =  data[gl_VertexID].pos.y / u_terrainHeight;
     f_normalizedTerrainHeight = normalizedHeight;
 
     float noiseInfluence = clamp((0.1 - normalizedHeight) / 0.1, 0.0, 1.0);
 
     height *= noiseInfluence;
 
-    vec4 worldPos = u_model * vec4(worldPosCam.x, abs(noiseHeight) + height, worldPosCam.y, 1.0f);
+    vec4 worldPos = u_model * vec4(worldPosCam.x, abs(data[gl_VertexID].pos.y) + height, worldPosCam.y, 1.0f);
     f_worldPos = worldPos.xyz;
     gl_Position = u_projection * u_view * worldPos;
 }

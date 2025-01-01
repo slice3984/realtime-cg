@@ -5,6 +5,7 @@ in float o_minHeight;
 in float o_maxHeight;
 in vec2 f_texCoord;
 in vec3 f_worldPos;
+in vec3 f_normal;
 
 out vec4 o_fragColor;
 
@@ -42,11 +43,7 @@ void main() {
     (1.0 - smoothstep(highLevel - blendRange, highLevel + blendRange, normalizedHeight));
 
     vec3 color = mix(layerOneColor, layerTwoColor, blendFactor);
-
-    // Normals
-    float dx = dFdx(o_height);
-    float dz = dFdy(o_height);
-    vec3 normal = normalize(vec3(-dx, 1.0, -dz));
+    vec3 normal = f_normal;
 
     // Lighting
     vec3 lightDir = normalize(u_lightDirection);

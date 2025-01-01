@@ -8,11 +8,14 @@
 #include <glm/glm.hpp>
 #include "TerrainChunk.h"
 #include "TerrainPatchLODGenerator.h"
+#include "../ComputeShader.h"
 #include "../Shaders/TerrainShader/TerrainShaderProgram.h"
 
 
 class TerrainManager {
 public:
+    static constexpr int XZ_CHUNK_AMOUNT = 5;
+
     TerrainManager(const int chunkSize, TerrainShaderProgram &terrainShader, const float &terrainHeight,
                    const int &octaves, const float &scale, const float &persistance,
                    const float &lucunarity) : m_chunkSize(chunkSize),
@@ -21,10 +24,12 @@ public:
                                                   5, std::vector<TerrainChunk>(5)),
                                               m_terrainHeight(terrainHeight),
                                               m_octaves(octaves), m_scale(scale), m_persistance(persistance),
-                                              m_lucunarity(lucunarity) {
+                                              m_lucunarity(lucunarity),
+                                                m_terrainComputeShader{"../src/Shaders/TerrainShader/shader.compute"} {
         generateChunkMeshes();
         uploadTextures();
         recalculateChunks(glm::vec3{0.0f});
+        dispatchCompute();
         renderGrid();
     }
 
@@ -45,8 +50,9 @@ public:
         // If the camera has moved into a new chunk, recalculate the terrain grid
         if (currentCenterChunkPos != lastCenterChunkPos) {
             recalculateChunks(camPos);
+            dispatchCompute();
         }
-
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         renderGrid();
     }
 
@@ -93,10 +99,11 @@ public:
 
 private:
     int m_chunkSize;
-    LODBufferInfo m_meshBufferPositions; // Contains buffer positions of all LODs and Meshes
+    MeshBufferInfo m_meshBufferPositions; // Contains buffer positions of all LODs and Meshes
     std::vector<std::vector<TerrainChunk> > m_terrainGrid;
     TerrainShaderProgram m_terrainShader;
     TerrainBufferHandles m_terrainBufferHandles;
+    ComputeShader m_terrainComputeShader;
 
     // Textures
     TextureHandle m_texLayerOne;
@@ -111,9 +118,40 @@ private:
     const float &m_persistance;
     const float &m_lucunarity;
 
-    void generateChunkMeshes() {
+    static int calculateLod(const int row, const int column) {
+        return std::max(std::abs(row - 2), std::abs(column - 2));
+    }
 
-        m_meshBufferPositions = TerrainPatchLODGenerator::generateMultiLODBuffers(m_chunkSize, 2);
+    void generateChunkMeshes() {
+        std::vector<std::pair<int, STITCHED_EDGE>> meshesToGenerate;
+
+        // We have to generate a mesh for each individual rendered chunk
+        // First temporarily store all the meshes we need
+        for (int row = 0; row < XZ_CHUNK_AMOUNT; row++) {
+            for (int column = 0; column < XZ_CHUNK_AMOUNT; column++) {
+                // 2 at outer boundaries, 0 at center
+                int lod = calculateLod(row, column);
+
+                if (row > 0 && calculateLod(row - 1, column) < lod) {
+                    // Top
+                    meshesToGenerate.emplace_back(  lod, STITCHED_EDGE::TOP );
+                } else if (column < 4 && calculateLod(row, column + 1) < lod) {
+                    // Right
+                    meshesToGenerate.emplace_back(  lod, STITCHED_EDGE::RIGHT );
+                } else if (row < 4 && calculateLod(row + 1, column) < lod) {
+                    // Bottom
+                    meshesToGenerate.emplace_back(  lod, STITCHED_EDGE::BOTTOM );
+                } else if (column > 0 && calculateLod(row, column - 1) < lod) {
+                    // Left
+                    meshesToGenerate.emplace_back(  lod, STITCHED_EDGE::LEFT );
+                } else {
+                    // No stitching
+                    meshesToGenerate.emplace_back(  lod, STITCHED_EDGE::NONE );
+                }
+            }
+        }
+
+        m_meshBufferPositions = TerrainPatchLODGenerator::generateMultiMeshBuffer(m_chunkSize, meshesToGenerate);
 
         // Generate and set up VAO/EBO/SSBO
         m_terrainBufferHandles = TerrainPatchLODGenerator::generateTerrainBufferHandles(m_meshBufferPositions);
@@ -134,54 +172,31 @@ private:
     }
 
     void recalculateChunks(const glm::vec3 &currPos) {
-        glm::vec2 gridChunk = {std::floor(currPos.x / m_chunkSize), std::floor(currPos.z / m_chunkSize)};
-        glm::vec2 gridStartPos{
-            (gridChunk.x * m_chunkSize) - (2 * m_chunkSize), (gridChunk.y * m_chunkSize) - (2 * m_chunkSize)
+        glm::vec2 gridChunk = {
+            std::floor(currPos.x / m_chunkSize),
+            std::floor(currPos.z / m_chunkSize)
+        };
+        glm::vec2 gridStartPos = {
+            (gridChunk.x * m_chunkSize) - (2 * m_chunkSize),
+            (gridChunk.y * m_chunkSize) - (2 * m_chunkSize)
         };
 
-        auto calculateLod = [](const int row, const int column) -> int {
-            return std::max(std::abs(row - 2), std::abs(column - 2));
-        };
-
-        // Generate a 5x5 terrain grid
-        // LOD decreases in the outer areas
-        for (int row = 0; row < 5; row++) {
-            for (int column = 0; column < 5; column++) {
-                // 2 at outer boundaries, 0 at center
+        for (int row = 0; row < XZ_CHUNK_AMOUNT; row++) {
+            for (int column = 0; column < XZ_CHUNK_AMOUNT; column++) {
                 int lod = calculateLod(row, column);
+                int meshIndex = row * XZ_CHUNK_AMOUNT + column;
 
                 TerrainChunk chunk;
                 chunk.pos = {
                     gridStartPos.x + column * m_chunkSize,
                     gridStartPos.y + row * m_chunkSize
                 };
-
                 chunk.lod = lod;
 
-                // Check if and where stitching is required
-                LODBufferPos meshPos = m_meshBufferPositions.lodMeshes[lod];
-
-                if (row > 0 && calculateLod(row - 1, column) < lod) {
-                    // Top
-                    chunk.indexBufferOffset = meshPos.stitchedMeshes[STITCHED_EDGE::TOP].indexOffset;
-                    chunk.drawCount = meshPos.stitchedMeshes[STITCHED_EDGE::TOP].indexCount;
-                } else if (column < 4 && calculateLod(row, column + 1) < lod) {
-                    // Right
-                    chunk.indexBufferOffset = meshPos.stitchedMeshes[STITCHED_EDGE::RIGHT].indexOffset;
-                    chunk.drawCount = meshPos.stitchedMeshes[STITCHED_EDGE::RIGHT].indexCount;
-                } else if (row < 4 && calculateLod(row + 1, column) < lod) {
-                    // Bottom
-                    chunk.indexBufferOffset = meshPos.stitchedMeshes[STITCHED_EDGE::BOTTOM].indexOffset;
-                    chunk.drawCount = meshPos.stitchedMeshes[STITCHED_EDGE::BOTTOM].indexCount;
-                } else if (column > 0 && calculateLod(row, column - 1) < lod) {
-                    // Left
-                    chunk.indexBufferOffset = meshPos.stitchedMeshes[STITCHED_EDGE::LEFT].indexOffset;
-                    chunk.drawCount = meshPos.stitchedMeshes[STITCHED_EDGE::LEFT].indexCount;
-                } else {
-                    // No stitching
-                    chunk.indexBufferOffset = meshPos.baseMesh.indexOffset;
-                    chunk.drawCount = meshPos.baseMesh.indexCount;
-                }
+                // Get correct mesh descriptor using grid-order index
+                const MeshBufferDescriptor& descriptor = m_meshBufferPositions.meshes[meshIndex];
+                chunk.bufferPos = descriptor.bufferPosition;
+                chunk.gridSpacing = descriptor.stepSize;
 
                 m_terrainGrid[row][column] = chunk;
             }
@@ -190,6 +205,8 @@ private:
 
     void renderGrid() {
         m_terrainShader.use();
+
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
         // Texture setup
         m_terrainShader.setInt("u_texLayerOne", 0);
@@ -213,6 +230,41 @@ private:
         // Cleanup
         glBindVertexArray(0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+    }
+
+    void dispatchCompute() {
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_terrainBufferHandles.SSBO);
+        glUseProgram(m_terrainComputeShader.getProgramId());
+
+        m_terrainComputeShader.setFloat("u_terrainHeight", m_terrainHeight);
+        m_terrainComputeShader.setFloat("u_scale", m_scale);
+        m_terrainComputeShader.setFloat("u_persistance", m_persistance);
+        m_terrainComputeShader.setFloat("u_lucunarity", m_lucunarity);
+        m_terrainComputeShader.setInt("u_octaves", m_octaves);
+
+        const uint workGroupSize = 256;
+        const uint verticesPerDispatch = 1024;
+        for (const auto& row : m_terrainGrid) {
+            for (const TerrainChunk& chunk : row) {
+                const uint amountVertices = chunk.bufferPos.vertexCount;
+                const uint baseOffset = chunk.bufferPos.vertexOffset;
+
+                m_terrainComputeShader.setVec2f("u_chunkOffset", chunk.pos);
+
+                for (uint offset = 0; offset < amountVertices; offset += verticesPerDispatch) {
+                    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+                    uint count = std::min(verticesPerDispatch, (amountVertices - offset));
+                    uint numGroups = (count + workGroupSize - 1) / workGroupSize;
+
+                    m_terrainComputeShader.setInt("u_bufferOffset", baseOffset + offset);
+                    m_terrainComputeShader.setInt("u_count", count);
+
+                    glDispatchCompute(numGroups, 1, 1);
+
+                }
+                glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+            }
+        }
     }
 };
 

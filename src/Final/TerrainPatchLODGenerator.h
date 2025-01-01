@@ -12,10 +12,11 @@
 #include "../../Linking/include/glad/glad.h"
 
 enum class STITCHED_EDGE {
-    LEFT = 0,
-    TOP = 1,
-    RIGHT = 2,
-    BOTTOM = 3,
+    NONE = 0,
+    LEFT = 1,
+    TOP = 2,
+    RIGHT = 3,
+    BOTTOM = 4,
 };
 
 struct TerrainBufferHandles {
@@ -48,10 +49,25 @@ struct VertexData {
     float paddding2;
 };
 
-struct LODBufferInfo {
+struct MeshBufferPosition {
+    uint vertexOffset;
+    uint vertexCount;
+    uint indexOffset;
+    uint indexCount;
+};
+
+struct MeshBufferDescriptor {
+    int lod;
+    float stepSize; // Distance between vertices
+    STITCHED_EDGE stitchedEdge;
+    MeshBufferPosition bufferPosition;
+};
+
+struct MeshBufferInfo {
     std::vector<VertexData> vertexBuffer;
     std::vector<GLuint> indexBuffer;
-    std::unordered_map<int, LODBufferPos> lodMeshes;
+    uint totalVertexCount;
+    std::vector<MeshBufferDescriptor> meshes;
 };
 
 struct TerrainPatch {
@@ -305,13 +321,11 @@ public:
         return std::move(buffer);
     }
 
-    // Used for compute shader
-    // Generates two buffers, one for combined vertex attributes of all LODs including stitched versions
-    // another for the EBO used to index the vertex buffer
-    static LODBufferInfo generateMultiLODBuffers(const int meshBaseSize, const int lodCount) {
-        LODBufferInfo bufferInfo;
+    static MeshBufferInfo generateMultiMeshBuffer(const int meshBaseSize, const std::vector<std::pair<int, STITCHED_EDGE>> &meshes) {
+        MeshBufferInfo bufferInfo;
         std::vector<VertexData> vertexBuffer;
         std::vector<GLuint> indexBuffer;
+        uint totalVertexCount = 0;
 
         auto insertMeshVertexData = [&](const std::vector<GLfloat> &toInsert) -> uint {
             uint startIndex = vertexBuffer.size();
@@ -321,6 +335,8 @@ public:
                     0.0f, {0.0f, 0.0f, 0.0f}, 0.0f
                 });
             }
+
+            totalVertexCount += toInsert.size() / 2;
             return startIndex;
         };
 
@@ -333,53 +349,39 @@ public:
             return startIndex;
         };
 
-        for (int lod = 0; lod < lodCount + 1; lod++) {
-            LODBufferPos lodMeshPos;
+        for (const auto &mesh : meshes) {
+            TerrainPatch patch = generateBasePatch(meshBaseSize, mesh.first);
 
-            // Base mesh
-            TerrainPatch unstitchedPatch = generateBasePatch(meshBaseSize, lod);
-            std::vector<GLfloat> vertexAttribBuffer = generateVertexBuffer(unstitchedPatch);
-            std::vector<GLuint> meshIndexBuffer = triangulatePatch(unstitchedPatch);
+            if (mesh.second != STITCHED_EDGE::NONE) {
+                stitchPatchEdge(patch, mesh.second);
+            }
+
+            std::vector<GLfloat> vertexAttribBuffer = generateVertexBuffer(patch);
+            std::vector<GLuint> meshIndexBuffer = triangulatePatch(patch);
 
             uint baseVertexOffset = insertMeshVertexData(vertexAttribBuffer);
             uint baseIndexOffset = insertIndexData(meshIndexBuffer, baseVertexOffset);
 
-            lodMeshPos.baseMesh = {
+            MeshBufferPosition bufferPos = {
                 baseVertexOffset,
                 (uint)(vertexAttribBuffer.size() / 2),
                 baseIndexOffset,
                 (uint)(meshIndexBuffer.size())
             };
 
-            // Stitched versions
-            for (STITCHED_EDGE edge: {
-                     STITCHED_EDGE::LEFT, STITCHED_EDGE::TOP,
-                     STITCHED_EDGE::RIGHT, STITCHED_EDGE::BOTTOM
-                 }) {
-                TerrainPatch stitchedPatch = generateBasePatch(meshBaseSize, lod);
-                stitchPatchEdge(stitchedPatch, edge);
-
-                std::vector<GLfloat> vertexAttribBuffer = generateVertexBuffer(stitchedPatch);
-                std::vector<GLuint> meshIndexBuffer = triangulatePatch(stitchedPatch);
-
-                uint vertexOffset = insertMeshVertexData(vertexAttribBuffer);
-                uint indexOffset = insertIndexData(meshIndexBuffer, vertexOffset);
-
-                lodMeshPos.stitchedMeshes[edge] = {
-                    vertexOffset,
-                    (uint)(vertexAttribBuffer.size() / 2),
-                    indexOffset,
-                    (uint)(meshIndexBuffer.size())
-                };
-            }
-
-            bufferInfo.lodMeshes[lod] = lodMeshPos;
+            bufferInfo.meshes.push_back({
+                mesh.first,
+                patch.stepSize,
+                mesh.second,
+                bufferPos
+            });
         }
 
         bufferInfo.vertexBuffer = std::move(vertexBuffer);
         bufferInfo.indexBuffer = std::move(indexBuffer);
+        bufferInfo.totalVertexCount = totalVertexCount;
 
-        return bufferInfo;
+        return std::move(bufferInfo);
     }
 
     static GLuint generateMultiLODVAOHandle(GLuint eboHandle) {
@@ -398,7 +400,7 @@ public:
     }
 
     // Accessible by vertex/fragment shaders, modified by the compute shader
-    static GLuint generateMultiLODBufferSSBOHandle(const LODBufferInfo &bufferInfo) {
+    static GLuint generateMultiLODBufferSSBOHandle(const MeshBufferInfo &bufferInfo) {
         GLuint SSBO;
         glGenBuffers(1, &SSBO);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
@@ -416,7 +418,7 @@ public:
         return SSBO;
     }
 
-    static GLuint generateMultiLOBufferEBOHandle(const LODBufferInfo &bufferInfo) {
+    static GLuint generateMultiLOBufferEBOHandle(const MeshBufferInfo &bufferInfo) {
         GLuint EBO;
         glGenBuffers(1, &EBO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -427,7 +429,7 @@ public:
         return EBO;
     }
 
-    static TerrainBufferHandles generateTerrainBufferHandles(const LODBufferInfo &bufferInfo) {
+    static TerrainBufferHandles generateTerrainBufferHandles(const MeshBufferInfo &bufferInfo) {
         TerrainBufferHandles handles;
 
         // SSBO

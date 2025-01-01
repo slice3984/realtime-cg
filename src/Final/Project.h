@@ -103,7 +103,7 @@ public:
 
         float rotationAngle = glm::acos(glm::dot(modelUp, normal));
         m_renderQueue["suzanne"].setTranslation(
-            m_terrainManager.getWorldSpacePositionInChunk({64.0f, 64.0f}, chunk) + glm::vec3(0.0f, 10.0f, 0.0f));
+            m_terrainManager.getWorldSpacePositionInChunk({64.0f, 64.0f}, chunk) + glm::vec3(0.0f, 1.0f, 0.0f));
         m_renderQueue["suzanne"].setRotationAxis(rotationAxis);
         m_renderQueue["suzanne"].setRotationAngle(glm::degrees(rotationAngle));
         m_renderQueue["suzanne"].setScale(glm::vec3{10.0f});
@@ -153,7 +153,7 @@ private:
     RenderQueue m_renderQueue{"scene"};
     GLuint m_skyboxHandle;
     TerrainPatchHandle h;
-    LODBufferInfo test;
+    MeshBufferInfo test;
     GLuint ssbo, ebo, vao;
 
     // Shaders
@@ -175,7 +175,7 @@ private:
     float m_terrainLucunarity{10.0f};
     int m_terrainOctaves{4};
     TerrainManager m_terrainManager{
-        128, m_terrainShader, m_terrainHeight, m_terrainOctaves, m_terrainScale, m_terrainPersistence,
+        256, m_terrainShader, m_terrainHeight, m_terrainOctaves, m_terrainScale, m_terrainPersistence,
         m_terrainLucunarity
     };
 
