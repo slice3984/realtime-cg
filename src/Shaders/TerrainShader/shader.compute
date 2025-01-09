@@ -1,4 +1,6 @@
 #version 430
+#define MAX_MODELS 64
+
 layout (local_size_x = 256) in;
 
 struct VertexData {
@@ -6,11 +8,23 @@ struct VertexData {
     vec3 normal;
 };
 
+struct InstanceData {
+    vec3 pos;
+    float scaling;
+};
+
 layout (std430, binding = 0) buffer VertexDataBuffer {
     VertexData data[];
 };
 
+layout(std430, binding = 1) buffer InstanceBuffer {
+    InstanceData instances[];
+};
+
+layout(binding = 2) uniform atomic_uint instanceCounters[MAX_MODELS];
+
 uniform vec2 u_chunkOffset;
+uniform int u_stepSize;
 uniform float u_terrainHeight;
 uniform float u_scale;
 uniform float u_persistance;
@@ -18,6 +32,8 @@ uniform float u_lucunarity;
 uniform int u_octaves;
 uniform int u_bufferOffset;
 uniform int u_count;
+uniform int u_modelInstanceOffsets[MAX_MODELS];
+
 
 vec3 mod289(vec3 x) {
     return x - floor(x * (1.0 / 289.0)) * 289.0;
@@ -70,33 +86,59 @@ vec4 snoiseAndNormal(vec2 v) {
     vec2 grad = m.x * g0 + m.y * g1 + m.z * g2;
     grad -= w.x * xdg.x * x0 + w.y * xdg.y * x12.xy + w.z * xdg.z * x12.zw;
 
-    return 130 * vec4( dot(xdg, m), vec3(-grad.x, 1.0, -grad.y) );
+    return 130.0 * vec4( dot(xdg, m), vec3(-grad.x, 1.0/130.0, -grad.y) );
 }
 
 vec4 computeHeightAndNormal(vec2 worldPos) {
     float noiseHeight = 0.0;
     float amplitude = 1.0;
     float frequency = 1.0;
-    vec3 accumulatedGradient = vec3(0.0);
 
     for (int i = 0; i < u_octaves; i++) {
         vec4 noiseAndNormal = snoiseAndNormal(worldPos / (u_scale * frequency));
 
-        float noise = noiseAndNormal.x;
-        vec3 gradient = noiseAndNormal.yzw;
+        float thisNoise = noiseAndNormal.x; // noise value
 
-        noiseHeight += amplitude * noise;
-        accumulatedGradient += amplitude * gradient;
+        noiseHeight += amplitude * thisNoise;
 
         amplitude *= u_persistance;
         frequency *= u_lucunarity;
     }
 
-    vec3 finalNormal = normalize(accumulatedGradient);
+    float finalHeight = u_terrainHeight * (noiseHeight + 1.0) * 0.5;
 
-    return vec4(u_terrainHeight * (noiseHeight + 1.0) * 0.5, finalNormal);
+    float delta = 0.01;
+
+    vec2 dx = vec2(delta, 0.0);
+    vec2 dy = vec2(0.0, delta);
+
+    float heightXPlus = 0.0;
+    float heightYPlus = 0.0;
+
+    amplitude = 1.0;
+    frequency = 1.0;
+
+    for (int i = 0; i < u_octaves; i++) {
+        vec4 noiseXPlus = snoiseAndNormal((worldPos + dx) / (u_scale * frequency));
+        vec4 noiseYPlus = snoiseAndNormal((worldPos + dy) / (u_scale * frequency));
+
+        heightXPlus += amplitude * noiseXPlus.x;
+        heightYPlus += amplitude * noiseYPlus.x;
+
+        amplitude *= u_persistance;
+        frequency *= u_lucunarity;
+    }
+
+    float finalHeightXPlus = u_terrainHeight * (heightXPlus + 1.0) * 0.5;
+    float finalHeightYPlus = u_terrainHeight * (heightYPlus + 1.0) * 0.5;
+
+    float gradientX = (finalHeightXPlus - finalHeight) / delta;
+    float gradientY = (finalHeightYPlus - finalHeight) / delta;
+
+    vec3 finalNormal = normalize(vec3(-gradientX, 1.0, -gradientY));
+
+    return vec4(finalHeight, finalNormal);
 }
-
 
 void main() {
     if (gl_GlobalInvocationID.x >= u_count) return;
@@ -108,8 +150,24 @@ void main() {
 
     vec4 heightAndNormal = computeHeightAndNormal(worldPos);
     float noiseHeight = heightAndNormal.x;
+    float normalizedHeight = noiseHeight / u_terrainHeight;
     vec3 normal = heightAndNormal.yzw;
 
     data[index].pos = vec3(currPos.x, noiseHeight, currPos.z);
     data[index].normal = normal;
+
+    // Grass
+    if (normalizedHeight > 0.1 && normalizedHeight < 0.9) {
+        uint instanceIndexGrass = u_modelInstanceOffsets[0] + atomicCounterIncrement(instanceCounters[0]);
+        vec3 currInstancePos = vec3(worldPos.x, noiseHeight, worldPos.y);
+        instances[instanceIndexGrass].pos = currInstancePos;
+        instances[instanceIndexGrass].scaling = u_stepSize * 10.0f;
+    }
+
+    if (normalizedHeight > 0.9) {
+        uint instanceIndexTv = u_modelInstanceOffsets[1] + atomicCounterIncrement(instanceCounters[1]);
+        vec3 currInstancePos = vec3(worldPos.x, noiseHeight + 10.0f, worldPos.y);
+        instances[instanceIndexTv].pos = currInstancePos;
+        instances[instanceIndexTv].scaling = u_stepSize * 20.0f;
+    }
 }

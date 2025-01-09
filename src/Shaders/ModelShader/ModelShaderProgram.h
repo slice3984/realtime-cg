@@ -21,6 +21,17 @@ public:
             setMat4f("u_model", renderEntity.getModelMatrix());
         }
 
+        handleTextures(renderCall);
+    }
+
+    void preRender(const RenderCall &renderCall) {
+        handleTextures(renderCall);
+    }
+
+private:
+    inline static GLint defaultTextureHandleDiffuse = -1;
+
+    void handleTextures(const RenderCall &renderCall) {
         // Bind textures
         // Diffuse
         this->setInt("u_texDiffuse", 0);
@@ -39,9 +50,6 @@ public:
             glBindTexture(GL_TEXTURE_2D, defaultTextureHandleDiffuse);
         }
     }
-
-private:
-    inline static GLint defaultTextureHandleDiffuse = -1;
 
     [[nodiscard]] static GLuint generateDefaultTexture() {
         GLuint defaultTexture;

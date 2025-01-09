@@ -16,6 +16,7 @@
 #include "../Shaders/TerrainShader/TerrainShaderProgram.h"
 #include "../GPUModelUploader.h"
 #include "../Shaders/ModelShader/ModelShaderProgram.h"
+#include "../Shaders/GrassShaderInstanced/GrassShaderInstancedProgram.h"
 #include "../Shaders/WaterShader/WaterShaderProgram.h"
 
 
@@ -65,6 +66,7 @@ public:
         glm::mat4 view = m_cam.getViewMatrix();
         glm::mat4 projection = glm::perspective(glm::radians(m_cam.getFov()), aspectRatio, 0.1f, 500.0f);
 
+        // Base Model
         glUseProgram(m_modelShader.getProgramId());
         m_modelShader.setMat4f("u_view", view);
         m_modelShader.setMat4f("u_projection", projection);
@@ -73,12 +75,21 @@ public:
         m_modelShader.setFloat("u_ambientIntensity", m_ambientIntensity);
         m_modelShader.setFloat("u_specularIntensity", m_specularIntensity);
 
+        // Grass instancing
+        glUseProgram(m_GrassShaderInstanced.getProgramId());
+        m_GrassShaderInstanced.setMat4f("u_view", view);
+        m_GrassShaderInstanced.setMat4f("u_projection", projection);
+        m_GrassShaderInstanced.setVec3f("u_lightDirection", m_lightDirection);
+        m_GrassShaderInstanced.setVec3f("u_cameraPos", m_cam.getCamPos());
+        m_GrassShaderInstanced.setFloat("u_ambientIntensity", m_ambientIntensity);
+        m_GrassShaderInstanced.setFloat("u_specularIntensity", m_specularIntensity);
 
+        // Skybox
         glUseProgram(m_skyboxShader.getProgramId());
         m_skyboxShader.setMat4f("u_view", view);
         m_skyboxShader.setMat4f("u_projection", projection);
 
-
+        // Water
         glUseProgram(m_waterShader.getProgramId());
         m_waterShader.setMat4f("u_view", view);
         m_waterShader.setMat4f("u_projection", projection);
@@ -108,8 +119,6 @@ public:
         m_renderQueue["suzanne"].setRotationAngle(glm::degrees(rotationAngle));
         m_renderQueue["suzanne"].setScale(glm::vec3{10.0f});
 
-        m_renderer.renderAllQueues();
-
         glUseProgram(m_terrainShader.getProgramId());
         m_terrainShader.setMat4f("u_view", view);
         m_terrainShader.setMat4f("u_projection", projection);
@@ -125,6 +134,7 @@ public:
         m_terrainShader.setFloat("u_specularIntensity", m_specularIntensity);
         m_terrainManager.update(m_cam.getCamPos());
 
+        m_renderer.renderAllQueues();
 
         float height = m_terrainManager.getHeight(m_cam.getCamPos());
 
@@ -155,16 +165,18 @@ private:
     TerrainPatchHandle h;
     MeshBufferInfo test;
     GLuint ssbo, ebo, vao;
+    float debug{0.0};
 
     // Shaders
     ModelShaderProgram m_modelShader;
+    GrassShaderInstancedProgram m_GrassShaderInstanced;
     SkyboxShaderProgram m_skyboxShader;
     TerrainShaderProgram m_terrainShader;
     WaterShaderProgram m_waterShader;
 
     // Lighting
     glm::vec3 m_lightDirection{1.0f, 100.0f, 1.0f};
-    float m_ambientIntensity = 0.1f;
+    float m_ambientIntensity = 0.3f;
     float m_specularIntensity = 64.0f;
 
     // Terrain
@@ -175,7 +187,7 @@ private:
     float m_terrainLucunarity{10.0f};
     int m_terrainOctaves{4};
     TerrainManager m_terrainManager{
-        256, m_terrainShader, m_terrainHeight, m_terrainOctaves, m_terrainScale, m_terrainPersistence,
+        256, m_terrainShader, m_GrassShaderInstanced, m_terrainHeight, m_terrainOctaves, m_terrainScale, m_terrainPersistence,
         m_terrainLucunarity
     };
 

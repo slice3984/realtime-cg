@@ -1,26 +1,38 @@
 //
-// Created by slice on 12/15/24.
+// Created by slice on 1/3/25.
 //
 
-#ifndef TILINGSHADERPROGRAM_H
-#define TILINGSHADERPROGRAM_H
+#ifndef MODELSHADERINSTANCEDPROGRAM_H
+#define MODELSHADERINSTANCEDPROGRAM_H
 #include "../BaseShaderProgram.h"
 
 
-class TilingShaderProgram : public BaseShaderProgram {
+class GrassShaderInstancedProgram : public BaseShaderProgram {
 public:
-    TilingShaderProgram() : BaseShaderProgram("../src/Shaders/TilingShader/shader.vert", "../src/Shaders/TilingShader/shader.frag") {
-        m_stateDescriptor.cullFaceEnabled = true;
+    GrassShaderInstancedProgram() : BaseShaderProgram("../src/Shaders/GrassShaderInstanced/shader.vert", "../src/Shaders/GrassShaderInstanced/shader.frag") {
+        m_stateDescriptor.cullFaceEnabled = false;
         m_stateDescriptor.cullFaceMode = GL_BACK;
         m_stateDescriptor.depthTestEnabled = true;
+        m_stateDescriptor.blendingEnabled = false;
+        m_stateDescriptor.depthMaskEnabled = true;
     }
-
     void preRender(const RenderEntity &renderEntity, const RenderCall &renderCall, bool setModelMatrix) override {
         // Model matrix
         if (setModelMatrix) {
             setMat4f("u_model", renderEntity.getModelMatrix());
         }
 
+        handleTextures(renderCall);
+    }
+
+    void preRender(const RenderCall &renderCall) {
+        handleTextures(renderCall);
+    }
+
+private:
+    inline static GLint defaultTextureHandleDiffuse = -1;
+
+    void handleTextures(const RenderCall &renderCall) {
         // Bind textures
         // Diffuse
         this->setInt("u_texDiffuse", 0);
@@ -39,11 +51,6 @@ public:
             glBindTexture(GL_TEXTURE_2D, defaultTextureHandleDiffuse);
         }
     }
-
-    void preRender(const RenderCall &renderCall) {}
-
-private:
-    inline static GLint defaultTextureHandleDiffuse = -1;
 
     [[nodiscard]] static GLuint generateDefaultTexture() {
         GLuint defaultTexture;
@@ -65,4 +72,4 @@ private:
 
 
 
-#endif //TILINGSHADERPROGRAM_H
+#endif //MODELSHADERINSTANCEDPROGRAM_H

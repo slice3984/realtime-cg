@@ -29,6 +29,8 @@ public:
             glBindTexture(GL_TEXTURE_CUBE_MAP, it->second);
         }
     }
+
+    void preRender(const RenderCall &renderCall) {}
 };
 
 

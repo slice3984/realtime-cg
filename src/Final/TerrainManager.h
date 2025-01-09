@@ -6,9 +6,14 @@
 #define TERRAINMANAGER_H
 #include <vector>
 #include <glm/glm.hpp>
+
+#include "InstancingManager.h"
 #include "TerrainChunk.h"
 #include "TerrainPatchLODGenerator.h"
 #include "../ComputeShader.h"
+#include "../GPUModelUploader.h"
+#include "../Shaders/ModelShader/ModelShaderProgram.h"
+#include "../Shaders/GrassShaderInstanced/GrassShaderInstancedProgram.h"
 #include "../Shaders/TerrainShader/TerrainShaderProgram.h"
 
 
@@ -16,17 +21,20 @@ class TerrainManager {
 public:
     static constexpr int XZ_CHUNK_AMOUNT = 5;
 
-    TerrainManager(const int chunkSize, TerrainShaderProgram &terrainShader, const float &terrainHeight,
+    TerrainManager(const int chunkSize, TerrainShaderProgram &terrainShader, GrassShaderInstancedProgram &modelShaderInstanced, const float &terrainHeight,
                    const int &octaves, const float &scale, const float &persistance,
                    const float &lucunarity) : m_chunkSize(chunkSize),
                                               m_terrainShader(terrainShader),
+    m_modelShaderInstanced(modelShaderInstanced),
                                               m_terrainGrid(
                                                   5, std::vector<TerrainChunk>(5)),
                                               m_terrainHeight(terrainHeight),
                                               m_octaves(octaves), m_scale(scale), m_persistance(persistance),
                                               m_lucunarity(lucunarity),
-                                                m_terrainComputeShader{"../src/Shaders/TerrainShader/shader.compute"} {
+                                                m_terrainComputeShader{"../src/Shaders/TerrainShader/shader.compute",
+                                                } {
         generateChunkMeshes();
+        setupInstancingManager();
         uploadTextures();
         recalculateChunks(glm::vec3{0.0f});
         dispatchCompute();
@@ -104,7 +112,10 @@ private:
     TerrainShaderProgram m_terrainShader;
     TerrainBufferHandles m_terrainBufferHandles;
     ComputeShader m_terrainComputeShader;
+    std::unique_ptr<InstancingManager> m_instancingManager;
 
+    // Shaders
+    GrassShaderInstancedProgram &m_modelShaderInstanced;
     // Textures
     TextureHandle m_texLayerOne;
     TextureHandle m_texLayerTwo;
@@ -193,7 +204,6 @@ private:
                 };
                 chunk.lod = lod;
 
-                // Get correct mesh descriptor using grid-order index
                 const MeshBufferDescriptor& descriptor = m_meshBufferPositions.meshes[meshIndex];
                 chunk.bufferPos = descriptor.bufferPosition;
                 chunk.gridSpacing = descriptor.stepSize;
@@ -205,8 +215,6 @@ private:
 
     void renderGrid() {
         m_terrainShader.use();
-
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
         // Texture setup
         m_terrainShader.setInt("u_texLayerOne", 0);
@@ -223,13 +231,36 @@ private:
         // Render chunks
         for (auto &row: m_terrainGrid) {
             for (auto &chunk: row) {
-                chunk.render(m_terrainShader);
+               chunk.render(m_terrainShader);
             }
         }
 
         // Cleanup
         glBindVertexArray(0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+
+        m_instancingManager->issueDrawCalls();
+    }
+
+    void setupInstancingManager() {
+        m_instancingManager = std::make_unique<InstancingManager>(m_terrainComputeShader, m_meshBufferPositions.totalVertexCount);
+
+        // Set models to be instanced
+        GltfLoader loader;
+        GPUModelUploader uploader;
+
+        GltfScene grassBlade = loader.loadModel("../assets/models/terrain/grass.glb");
+        std::vector<RenderCall> grassBladeRenderCalls = uploader.uploadGltfModel(grassBlade);
+        m_instancingManager->addModelToBeInstanced(grassBladeRenderCalls, &m_modelShaderInstanced);
+
+        GltfScene tv = loader.loadModel("../assets/models/tv.glb");
+        std::vector<RenderCall> tvRenderCalls = uploader.uploadGltfModel(tv);
+        m_instancingManager->addModelToBeInstanced(tvRenderCalls, &m_modelShaderInstanced);
+
+        // Initialize buffers
+        glUseProgram(m_terrainComputeShader.getProgramId());
+        m_instancingManager->initializeSSBOBuffers();
+        m_instancingManager->setupInstanceCountAtomics();
     }
 
     void dispatchCompute() {
@@ -250,6 +281,8 @@ private:
                 const uint baseOffset = chunk.bufferPos.vertexOffset;
 
                 m_terrainComputeShader.setVec2f("u_chunkOffset", chunk.pos);
+                m_terrainComputeShader.setInt("u_stepSize", (int)chunk.gridSpacing);
+                m_instancingManager->setComputeShaderOffsetUniforms();
 
                 for (uint offset = 0; offset < amountVertices; offset += verticesPerDispatch) {
                     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -260,9 +293,10 @@ private:
                     m_terrainComputeShader.setInt("u_count", count);
 
                     glDispatchCompute(numGroups, 1, 1);
-
+                    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
                 }
-                glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+                m_instancingManager->prepareAtomicCounterFetching();
             }
         }
     }

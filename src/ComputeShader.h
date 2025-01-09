@@ -62,6 +62,10 @@ public:
         glUniformMatrix4fv(glGetUniformLocation(m_programId, name), 1, GL_FALSE, glm::value_ptr(value));
     }
 
+    void setIntArray(const char *name, const int *values, GLsizei count) const {
+        glUniform1iv(glGetUniformLocation(m_programId, name), count, values);
+    }
+
     GLuint getProgramId() const { return m_programId; }
 private:
     GLuint m_shaderId{};

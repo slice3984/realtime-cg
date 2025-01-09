@@ -40,7 +40,7 @@ void main() {
 
     vec4 finalColor = mix(vec4(lightIntensity, lightIntensity, lightIntensity, 1.0), reflectionColor, reflectionStrength);
 
-    finalColor.rgb *= vec3(0.6, 0.2, 0.0);
+    finalColor.rgb *= vec3(0.0, 0.5, 0.8);
 
     o_fragColor = finalColor;
 }

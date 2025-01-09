@@ -138,6 +138,7 @@ public:
 
     // Supposed to be called before issuing render calls, used to bind textures etc
     virtual void preRender(const RenderEntity &renderEntity, const RenderCall &renderCall, bool setModelMatrix = true) = 0;
+    virtual void preRender(const RenderCall &renderCall) = 0;
 };
 
 
