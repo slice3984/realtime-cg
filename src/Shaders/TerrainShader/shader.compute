@@ -21,9 +21,14 @@ layout(std430, binding = 1) buffer InstanceBuffer {
     InstanceData instances[];
 };
 
-layout(binding = 2) uniform atomic_uint instanceCounters[MAX_MODELS];
+layout(std430, binding = 2) buffer CellGridBuffer {
+    uint grid[];
+};
+
+layout(binding = 3) uniform atomic_uint instanceCounters[MAX_MODELS];
 
 uniform vec2 u_chunkOffset;
+uniform vec2 u_chunkLocalGridPos;
 uniform int u_stepSize;
 uniform float u_terrainHeight;
 uniform float u_scale;
@@ -34,6 +39,17 @@ uniform int u_bufferOffset;
 uniform int u_count;
 uniform int u_modelInstanceOffsets[MAX_MODELS];
 
+uniform int u_gridCellSize;
+uniform int u_totalGridCells;
+
+float random(uint seed) {
+    seed ^= 2747636419u;
+    seed *= 2654435769u;
+    seed ^= (seed >> 16);
+    seed *= 2654435769u;
+    seed ^= (seed >> 16);
+    return float(seed & 0x007FFFFFu) / float(0x007FFFFF); // Map to [0, 1]
+}
 
 vec3 mod289(vec3 x) {
     return x - floor(x * (1.0 / 289.0)) * 289.0;
@@ -140,6 +156,15 @@ vec4 computeHeightAndNormal(vec2 worldPos) {
     return vec4(finalHeight, finalNormal);
 }
 
+int computeGridIndex(vec2 localGridPos) {
+    int xCellPos = int(floor(localGridPos.x / u_gridCellSize));
+    int zCellPos = int(floor(localGridPos.y / u_gridCellSize));
+
+    const int CELLS_PER_ROW = 1024 / u_gridCellSize;
+
+    return xCellPos + CELLS_PER_ROW * zCellPos;
+}
+
 void main() {
     if (gl_GlobalInvocationID.x >= u_count) return;
 
@@ -156,18 +181,36 @@ void main() {
     data[index].pos = vec3(currPos.x, noiseHeight, currPos.z);
     data[index].normal = normal;
 
-    // Grass
-    if (normalizedHeight > 0.1 && normalizedHeight < 0.9) {
-        uint instanceIndexGrass = u_modelInstanceOffsets[0] + atomicCounterIncrement(instanceCounters[0]);
-        vec3 currInstancePos = vec3(worldPos.x, noiseHeight, worldPos.y);
-        instances[instanceIndexGrass].pos = currInstancePos;
-        instances[instanceIndexGrass].scaling = u_stepSize * 10.0f;
+    // Figure out the current local grid cell the position is in
+    int cellIndex = computeGridIndex(currPos.xz + u_chunkLocalGridPos);
+
+    // Instancing data generation
+    if (normalizedHeight > 0.1) {
+        // Grass
+           uint instanceIndexGrass = u_modelInstanceOffsets[0] + atomicCounterIncrement(instanceCounters[0]);
+           vec3 currInstancePos = vec3(worldPos.x + random(index), noiseHeight, worldPos.y + random(index));
+           instances[instanceIndexGrass].pos = currInstancePos;
+           instances[instanceIndexGrass].scaling = u_stepSize * clamp(random(index), 0.4, 1.0) * 10.0f;
+
+        if (normalizedHeight > 0.3) {
+            bool cellWasEmpty = atomicCompSwap(grid[cellIndex], 0, 1) == 0;
+
+            if (cellWasEmpty) {
+                // Random position in cell
+                vec2 randXZPos = vec2(random(index) * u_gridCellSize);
+                vec2 worldXZdPos = randXZPos + worldPos;
+
+                // Sample again for the correct height
+                float height = computeHeightAndNormal(worldXZdPos).x;
+
+                uint instanceIndexTv = u_modelInstanceOffsets[1] + atomicCounterIncrement(instanceCounters[1]);
+                vec3 currInstancePos = vec3(worldXZdPos.x, height, worldXZdPos.y);
+                instances[instanceIndexTv].pos = currInstancePos;
+
+                // Random tree height
+                instances[instanceIndexTv].scaling = clamp(random(index), 0.5, 1.0) * 8.0f;
+            }
+        }
     }
 
-    if (normalizedHeight > 0.9) {
-        uint instanceIndexTv = u_modelInstanceOffsets[1] + atomicCounterIncrement(instanceCounters[1]);
-        vec3 currInstancePos = vec3(worldPos.x, noiseHeight + 10.0f, worldPos.y);
-        instances[instanceIndexTv].pos = currInstancePos;
-        instances[instanceIndexTv].scaling = u_stepSize * 20.0f;
-    }
 }

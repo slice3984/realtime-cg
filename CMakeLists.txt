@@ -68,6 +68,8 @@ add_executable(realtime_cg
         src/ComputeShader.h
         src/Final/InstancingManager.h
         src/Shaders/GrassShaderInstanced/GrassShaderInstancedProgram.h
+        src/Shaders/TreeShaderInstance/TreeShaderInstancedProgram.h
+        src/Shaders/SunShader/SunShaderProgram.h
 )
 
 # GLFW

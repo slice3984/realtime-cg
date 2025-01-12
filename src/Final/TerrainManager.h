@@ -15,24 +15,29 @@
 #include "../Shaders/ModelShader/ModelShaderProgram.h"
 #include "../Shaders/GrassShaderInstanced/GrassShaderInstancedProgram.h"
 #include "../Shaders/TerrainShader/TerrainShaderProgram.h"
+#include "../Shaders/TreeShaderInstance/TreeShaderInstancedProgram.h"
 
 
 class TerrainManager {
 public:
     static constexpr int XZ_CHUNK_AMOUNT = 5;
 
-    TerrainManager(const int chunkSize, TerrainShaderProgram &terrainShader, GrassShaderInstancedProgram &modelShaderInstanced, const float &terrainHeight,
+    TerrainManager(const int chunkSize, TerrainShaderProgram &terrainShader,
+                   GrassShaderInstancedProgram &modelShaderInstanced, TreeShaderInstancedProgram &treeShaderInstanced,
+                   const float &terrainHeight,
                    const int &octaves, const float &scale, const float &persistance,
                    const float &lucunarity) : m_chunkSize(chunkSize),
                                               m_terrainShader(terrainShader),
-    m_modelShaderInstanced(modelShaderInstanced),
+                                              m_modelShaderInstanced(modelShaderInstanced),
+                                              m_treeShaderInstanced(treeShaderInstanced),
                                               m_terrainGrid(
                                                   5, std::vector<TerrainChunk>(5)),
                                               m_terrainHeight(terrainHeight),
                                               m_octaves(octaves), m_scale(scale), m_persistance(persistance),
                                               m_lucunarity(lucunarity),
-                                                m_terrainComputeShader{"../src/Shaders/TerrainShader/shader.compute",
-                                                } {
+                                              m_terrainComputeShader{
+                                                  "../src/Shaders/TerrainShader/shader.compute",
+                                              } {
         generateChunkMeshes();
         setupInstancingManager();
         uploadTextures();
@@ -51,8 +56,8 @@ public:
 
         // Determine the grid position of the last known center chunk (LOD 0)
         glm::vec2 lastCenterChunkPos = {
-            std::floor(m_terrainGrid[2][2].pos.x / m_chunkSize),
-            std::floor(m_terrainGrid[2][2].pos.y / m_chunkSize)
+            std::floor(m_terrainGrid[2][2].globalPos.x / m_chunkSize),
+            std::floor(m_terrainGrid[2][2].globalPos.y / m_chunkSize)
         };
 
         // If the camera has moved into a new chunk, recalculate the terrain grid
@@ -81,7 +86,7 @@ public:
     }
 
     glm::vec3 calculateNormal(const glm::vec3 &localPos, const TerrainChunk &chunk) const {
-        glm::vec3 worldPos = glm::vec3{chunk.pos.x, 0.0f, chunk.pos.y} + localPos;
+        glm::vec3 worldPos = glm::vec3{chunk.globalPos.x, 0.0f, chunk.globalPos.y} + localPos;
 
         float hL = getHeight(worldPos - glm::vec3(1.0f, 0.0f, 0.0f)); // Left
         float hR = getHeight(worldPos + glm::vec3(1.0f, 0.0f, 0.0f)); // Right
@@ -96,12 +101,12 @@ public:
         return normal;
     }
 
-    const TerrainChunk& getTerrainChunk(const int row, const int column) const {
+    const TerrainChunk &getTerrainChunk(const int row, const int column) const {
         return m_terrainGrid[row][column];
     }
 
     glm::vec3 getWorldSpacePositionInChunk(const glm::vec2 &xzPos, const TerrainChunk &chunk) {
-        glm::vec2 worldPosXZ = chunk.pos + xzPos;
+        glm::vec2 worldPosXZ = chunk.globalPos + xzPos;
         return glm::vec3{worldPosXZ.x, getHeight(glm::vec3{worldPosXZ.x, 0.0f, worldPosXZ.y}), worldPosXZ.y};
     }
 
@@ -116,6 +121,7 @@ private:
 
     // Shaders
     GrassShaderInstancedProgram &m_modelShaderInstanced;
+    TreeShaderInstancedProgram &m_treeShaderInstanced;
     // Textures
     TextureHandle m_texLayerOne;
     TextureHandle m_texLayerTwo;
@@ -134,7 +140,7 @@ private:
     }
 
     void generateChunkMeshes() {
-        std::vector<std::pair<int, STITCHED_EDGE>> meshesToGenerate;
+        std::vector<std::pair<int, STITCHED_EDGE> > meshesToGenerate;
 
         // We have to generate a mesh for each individual rendered chunk
         // First temporarily store all the meshes we need
@@ -145,19 +151,19 @@ private:
 
                 if (row > 0 && calculateLod(row - 1, column) < lod) {
                     // Top
-                    meshesToGenerate.emplace_back(  lod, STITCHED_EDGE::TOP );
+                    meshesToGenerate.emplace_back(lod, STITCHED_EDGE::TOP);
                 } else if (column < 4 && calculateLod(row, column + 1) < lod) {
                     // Right
-                    meshesToGenerate.emplace_back(  lod, STITCHED_EDGE::RIGHT );
+                    meshesToGenerate.emplace_back(lod, STITCHED_EDGE::RIGHT);
                 } else if (row < 4 && calculateLod(row + 1, column) < lod) {
                     // Bottom
-                    meshesToGenerate.emplace_back(  lod, STITCHED_EDGE::BOTTOM );
+                    meshesToGenerate.emplace_back(lod, STITCHED_EDGE::BOTTOM);
                 } else if (column > 0 && calculateLod(row, column - 1) < lod) {
                     // Left
-                    meshesToGenerate.emplace_back(  lod, STITCHED_EDGE::LEFT );
+                    meshesToGenerate.emplace_back(lod, STITCHED_EDGE::LEFT);
                 } else {
                     // No stitching
-                    meshesToGenerate.emplace_back(  lod, STITCHED_EDGE::NONE );
+                    meshesToGenerate.emplace_back(lod, STITCHED_EDGE::NONE);
                 }
             }
         }
@@ -173,7 +179,7 @@ private:
     }
 
     void uploadTextures() {
-        ImageData imgTexLayerOne = opengl_utils::loadImage("../assets/textures/terrain/rock.png");
+        ImageData imgTexLayerOne = opengl_utils::loadImage("../assets/textures/terrain/dirt.png");
         m_texLayerOne = opengl_utils::createTexture(imgTexLayerOne, true);
         opengl_utils::updateTextureData(m_texLayerOne, imgTexLayerOne);
 
@@ -198,13 +204,18 @@ private:
                 int meshIndex = row * XZ_CHUNK_AMOUNT + column;
 
                 TerrainChunk chunk;
-                chunk.pos = {
+                chunk.globalPos = {
                     gridStartPos.x + column * m_chunkSize,
                     gridStartPos.y + row * m_chunkSize
                 };
                 chunk.lod = lod;
 
-                const MeshBufferDescriptor& descriptor = m_meshBufferPositions.meshes[meshIndex];
+                chunk.localGridPos = {
+                    column * m_chunkSize,
+                    (row + 1) * m_chunkSize
+                };
+
+                const MeshBufferDescriptor &descriptor = m_meshBufferPositions.meshes[meshIndex];
                 chunk.bufferPos = descriptor.bufferPosition;
                 chunk.gridSpacing = descriptor.stepSize;
 
@@ -231,7 +242,7 @@ private:
         // Render chunks
         for (auto &row: m_terrainGrid) {
             for (auto &chunk: row) {
-               chunk.render(m_terrainShader);
+                chunk.render(m_terrainShader);
             }
         }
 
@@ -243,7 +254,10 @@ private:
     }
 
     void setupInstancingManager() {
-        m_instancingManager = std::make_unique<InstancingManager>(m_terrainComputeShader, m_meshBufferPositions.totalVertexCount);
+        const uint widthHeightTerrain = XZ_CHUNK_AMOUNT * m_chunkSize;
+        m_instancingManager = std::make_unique<InstancingManager>(m_terrainComputeShader,
+                                                                  m_meshBufferPositions.totalVertexCount, 64,
+                                                                  widthHeightTerrain);
 
         // Set models to be instanced
         GltfLoader loader;
@@ -253,9 +267,9 @@ private:
         std::vector<RenderCall> grassBladeRenderCalls = uploader.uploadGltfModel(grassBlade);
         m_instancingManager->addModelToBeInstanced(grassBladeRenderCalls, &m_modelShaderInstanced);
 
-        GltfScene tv = loader.loadModel("../assets/models/tv.glb");
+        GltfScene tv = loader.loadModel("../assets/models/terrain/LOW_POLY_TREE.glb");
         std::vector<RenderCall> tvRenderCalls = uploader.uploadGltfModel(tv);
-        m_instancingManager->addModelToBeInstanced(tvRenderCalls, &m_modelShaderInstanced);
+        m_instancingManager->addModelToBeInstanced(tvRenderCalls, &m_treeShaderInstanced);
 
         // Initialize buffers
         glUseProgram(m_terrainComputeShader.getProgramId());
@@ -275,13 +289,14 @@ private:
 
         const uint workGroupSize = 256;
         const uint verticesPerDispatch = 1024;
-        for (const auto& row : m_terrainGrid) {
-            for (const TerrainChunk& chunk : row) {
+        for (const auto &row: m_terrainGrid) {
+            for (const TerrainChunk &chunk: row) {
                 const uint amountVertices = chunk.bufferPos.vertexCount;
                 const uint baseOffset = chunk.bufferPos.vertexOffset;
 
-                m_terrainComputeShader.setVec2f("u_chunkOffset", chunk.pos);
-                m_terrainComputeShader.setInt("u_stepSize", (int)chunk.gridSpacing);
+                m_terrainComputeShader.setVec2f("u_chunkOffset", chunk.globalPos);
+                m_terrainComputeShader.setVec2f("u_chunkLocalGridPos", chunk.localGridPos);
+                m_terrainComputeShader.setInt("u_stepSize", (int) chunk.gridSpacing);
                 m_instancingManager->setComputeShaderOffsetUniforms();
 
                 for (uint offset = 0; offset < amountVertices; offset += verticesPerDispatch) {

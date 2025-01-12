@@ -17,6 +17,7 @@
 #include "../GPUModelUploader.h"
 #include "../Shaders/ModelShader/ModelShaderProgram.h"
 #include "../Shaders/GrassShaderInstanced/GrassShaderInstancedProgram.h"
+#include "../Shaders/SunShader/SunShaderProgram.h"
 #include "../Shaders/WaterShader/WaterShaderProgram.h"
 
 
@@ -46,11 +47,14 @@ public:
         GPUModelUploader uploader;
         std::vector<RenderCall> suzanneCalls = uploader.uploadGltfModel(suzanne);
 
+        // Sun
+        RenderEntity sun = generateSun();
 
         m_renderQueue
                 .setShader(&m_skyboxShader)
                 .addEntity("skybox", skybox)
-                .setShader(&m_modelShader)
+                .setShader(&m_sunShader)
+                .addEntity("sun", sun)
                 .setShader(&m_waterShader)
                 .addEntity("water", {waterMeshRc})
                 .setShader(&m_modelShader)
@@ -65,6 +69,19 @@ public:
         float aspectRatio = static_cast<float>(viewport[2]) / static_cast<float>(viewport[3]);
         glm::mat4 view = m_cam.getViewMatrix();
         glm::mat4 projection = glm::perspective(glm::radians(m_cam.getFov()), aspectRatio, 0.1f, 500.0f);
+
+        const TerrainChunk &centerChunk = m_terrainManager.getTerrainChunk(2, 2);
+        glm::vec3 centerChunkWorldSpacePos = m_terrainManager.getWorldSpacePositionInChunk({64.0f, 64.0f}, centerChunk);
+
+        float angle = glm::radians(m_orbitangle);
+
+        glm::vec3 sunWorldPosition = {
+            m_cam.getCamPos().x + 256.0f * glm::cos(angle),
+            200.0f,
+            m_cam.getCamPos().z + 256.0f * glm::sin(angle)
+        };
+
+        m_lightDirection = glm::normalize(sunWorldPosition - centerChunkWorldSpacePos);
 
         // Base Model
         glUseProgram(m_modelShader.getProgramId());
@@ -83,6 +100,15 @@ public:
         m_GrassShaderInstanced.setVec3f("u_cameraPos", m_cam.getCamPos());
         m_GrassShaderInstanced.setFloat("u_ambientIntensity", m_ambientIntensity);
         m_GrassShaderInstanced.setFloat("u_specularIntensity", m_specularIntensity);
+
+        // Tree instancing
+        glUseProgram(m_treeShaderInstanced.getProgramId());
+        m_treeShaderInstanced.setMat4f("u_view", view);
+        m_treeShaderInstanced.setMat4f("u_projection", projection);
+        m_treeShaderInstanced.setVec3f("u_lightDirection", m_lightDirection);
+        m_treeShaderInstanced.setVec3f("u_cameraPos", m_cam.getCamPos());
+        m_treeShaderInstanced.setFloat("u_ambientIntensity", m_ambientIntensity);
+        m_treeShaderInstanced.setFloat("u_specularIntensity", m_specularIntensity);
 
         // Skybox
         glUseProgram(m_skyboxShader.getProgramId());
@@ -104,17 +130,27 @@ public:
         m_waterShader.setFloat("u_specularIntensity", m_specularIntensity);
         m_waterShader.setFloat("u_terrainHeight", m_terrainHeight);
 
+        // Sun
+        glUseProgram(m_sunShader.getProgramId());
+        m_sunShader.setMat4f("u_view", view);
+        m_sunShader.setMat4f("u_projection", projection);
+        m_sunShader.setVec3f("u_lightDirection", m_lightDirection);
+        m_sunShader.setVec3f("u_cameraPos", m_cam.getCamPos());
+        m_sunShader.setFloat("u_ambientIntensity", m_ambientIntensity);
+        m_sunShader.setFloat("u_specularIntensity", m_specularIntensity);
+        m_sunShader.setVec3f("u_sunPosition", sunWorldPosition);
+
 
         glm::vec3 localPos = glm::vec3(64.0f, 0.0f, 64.0f);
-        const TerrainChunk &chunk = m_terrainManager.getTerrainChunk(2, 2);
 
-        glm::vec3 normal = m_terrainManager.calculateNormal(localPos, chunk);
+
+        glm::vec3 normal = m_terrainManager.calculateNormal(localPos, centerChunk);
         glm::vec3 modelUp = glm::vec3(0.0f, 1.0f, 0.0f);
         glm::vec3 rotationAxis = glm::normalize(glm::cross(modelUp, normal));
 
         float rotationAngle = glm::acos(glm::dot(modelUp, normal));
         m_renderQueue["suzanne"].setTranslation(
-            m_terrainManager.getWorldSpacePositionInChunk({64.0f, 64.0f}, chunk) + glm::vec3(0.0f, 1.0f, 0.0f));
+            m_terrainManager.getWorldSpacePositionInChunk({64.0f, 64.0f}, centerChunk) + glm::vec3(0.0f, 1.0f, 0.0f));
         m_renderQueue["suzanne"].setRotationAxis(rotationAxis);
         m_renderQueue["suzanne"].setRotationAngle(glm::degrees(rotationAngle));
         m_renderQueue["suzanne"].setScale(glm::vec3{10.0f});
@@ -137,8 +173,7 @@ public:
         m_renderer.renderAllQueues();
 
         float height = m_terrainManager.getHeight(m_cam.getCamPos());
-
-        //m_cam.updateHeight(height + 2.0f);
+        m_cam.updateHeight(height + 2.0f);
 
         ImGuiWindowCreator terrainWindow{"Terrain parameters"};
         terrainWindow
@@ -147,7 +182,7 @@ public:
                 .slider("Persistance", &m_terrainPersistence, 0.1f, 1.0f)
                 .slider("Lucunarity", &m_terrainLucunarity, 1.0f, 10.0f)
                 .slider("Octaves", &m_terrainOctaves, 1, 10)
-                .slider("Light", &m_lightDirection, 0, 100);
+                .slider("Light orbit angle", &m_orbitangle, 0.0f, 360.0f);
 
         if (ImGui::Button("Toggle Wireframe")) {
             toggleTerrainWireframe();
@@ -170,14 +205,17 @@ private:
     // Shaders
     ModelShaderProgram m_modelShader;
     GrassShaderInstancedProgram m_GrassShaderInstanced;
+    TreeShaderInstancedProgram m_treeShaderInstanced;
     SkyboxShaderProgram m_skyboxShader;
     TerrainShaderProgram m_terrainShader;
     WaterShaderProgram m_waterShader;
+    SunShaderProgram m_sunShader;
 
     // Lighting
     glm::vec3 m_lightDirection{1.0f, 100.0f, 1.0f};
     float m_ambientIntensity = 0.3f;
     float m_specularIntensity = 64.0f;
+    float m_orbitangle = 0.0f;
 
     // Terrain
     bool m_terrainWireframe{false};
@@ -187,7 +225,7 @@ private:
     float m_terrainLucunarity{10.0f};
     int m_terrainOctaves{4};
     TerrainManager m_terrainManager{
-        256, m_terrainShader, m_GrassShaderInstanced, m_terrainHeight, m_terrainOctaves, m_terrainScale, m_terrainPersistence,
+        256, m_terrainShader, m_GrassShaderInstanced, m_treeShaderInstanced, m_terrainHeight, m_terrainOctaves, m_terrainScale, m_terrainPersistence,
         m_terrainLucunarity
     };
 
@@ -244,6 +282,31 @@ private:
         };
 
         return skybox;
+    }
+
+    RenderEntity generateSun() {
+        // Sphere primitive and VAO
+        PrimitiveData spherePrimitive = opengl_utils::getPrimitive(PrimitiveType::SPHERE);
+
+        VaoHandle sphereHandle = opengl_utils::generateVao(
+            VertexAttribArray{spherePrimitive.positions, 3},
+            VertexAttribArray{spherePrimitive.normals, 3},
+            VertexAttribArray{spherePrimitive.texCoords, 2},
+            IndexBufferArray{spherePrimitive.ebo}
+        );
+
+        ImageData sunImg = opengl_utils::loadImage("../assets/textures/sun.jpg");
+        TextureHandle sunTex = opengl_utils::createTexture(sunImg, false);
+        opengl_utils::updateTextureData(sunTex, sunImg);
+
+        RenderEntity sun = {
+            RenderCall {
+                sphereHandle.id, sphereHandle.elemenCount, GL_UNSIGNED_INT,
+                { { TextureType::DIFFUSE, sunTex.handle }}
+            }
+        };
+
+        return sun;
     }
 };
 

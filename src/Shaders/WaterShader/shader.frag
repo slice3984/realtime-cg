@@ -27,7 +27,7 @@ void main() {
     float specular = max(0.0, dot(normal, halfWay));
     specular = pow(specular, u_specularIntensity);
 
-    float ambient = u_ambientIntensity ;
+    float ambient = 0.6;
 
     float lightIntensity = ambient + diffuse + specular;
 

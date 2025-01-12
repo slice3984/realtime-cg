@@ -24,8 +24,10 @@
 // 4. Issue draw calls in render loop
 class InstancingManager {
 public:
-    InstancingManager(const ComputeShader &computeShader, const int totalVertexCount) : m_computeShader(computeShader),
-        m_totalVertexCount(totalVertexCount) {
+    InstancingManager(const ComputeShader &computeShader, const int totalVertexCount, const uint gridCellSize,
+                      const uint terrainSize) : m_computeShader(computeShader),
+                                                m_totalVertexCount(totalVertexCount), m_gridCellSize(gridCellSize),
+                                                m_terrainSize(terrainSize) {
     }
 
     void addModelToBeInstanced(std::vector<RenderCall> model, BaseShaderProgram *shader) {
@@ -49,12 +51,25 @@ public:
     // Example structure: [InstanceData grass, InstanceData grass2, [OffsetSpace], InstanceData tree..]
     void initializeSSBOBuffers() {
         // This wastes memory on the GPU since we will never need that amount of memory but makes working with it easier
+        // Instancing data buffer
         GLuint bufferSize = m_totalVertexCount * m_instancedDrawCalls.size() * sizeof(InstancingData);
 
         glGenBuffers(1, &m_SSBOHandle);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_SSBOHandle);
         glBufferData(GL_SHADER_STORAGE_BUFFER, bufferSize, nullptr, GL_DYNAMIC_DRAW);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_SSBOHandle);
+
+        // Grid cell buffer - Used to check if a cell is already in use
+        m_totalCells = std::ceil(m_terrainSize / m_gridCellSize) * std::ceil(m_terrainSize / m_gridCellSize);
+        const GLuint cellBufferSize = m_totalCells * sizeof(GLuint);
+        glGenBuffers(1, &m_SSBOHandleCellGrid);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_SSBOHandleCellGrid);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, cellBufferSize, nullptr, GL_DYNAMIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_SSBOHandleCellGrid);
+
+        m_computeShader.setInt("u_totalGridCells", m_totalCells);
+        m_computeShader.setInt("u_gridCellSize", m_gridCellSize);
+        clearGridCellBuffer();
     }
 
     void setupInstanceCountAtomics() {
@@ -65,7 +80,7 @@ public:
         glBufferData(GL_ATOMIC_COUNTER_BUFFER, m_instanceCounts.size() * sizeof(GLuint), m_instanceCounts.data(),
                      GL_DYNAMIC_DRAW);
 
-        glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 2, m_atomicCounterBuffer);
+        glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 3, m_atomicCounterBuffer);
     }
 
     // Used to set the starting memory regions in the instancing SSBO for each model type
@@ -88,6 +103,8 @@ public:
             }
         }
 
+        clearGridCellBuffer();
+
         BaseShaderProgram *currentShader = nullptr;
         for (const InstancedDrawCall &model: m_instancedDrawCalls) {
             // Avoid unnecessary rebindings
@@ -97,8 +114,7 @@ public:
             }
 
             currentShader->setFloat("u_time", glfwGetTime());
-            currentShader->setInt("u_baseInstance", model.instanceDataElementOffset);  // Add this line
-
+            currentShader->setInt("u_baseInstance", model.instanceDataElementOffset);
 
             for (const RenderCall &renderCall: model.modelRenderCalls) {
                 glBindVertexArray(renderCall.vao);
@@ -139,8 +155,12 @@ private:
     GLuint m_atomicCounterBuffer;
     std::vector<GLuint> m_instanceCounts;
     std::vector<InstancedDrawCall> m_instancedDrawCalls;
+    uint m_gridCellSize;
+    uint m_terrainSize;
     uint m_totalVertexCount;
+    uint m_totalCells;
     GLuint m_SSBOHandle;
+    GLuint m_SSBOHandleCellGrid;
 
     bool pollFenceState() {
         GLenum waitRet = glClientWaitSync(m_fenceHandle, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
@@ -160,6 +180,12 @@ private:
         glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, m_atomicCounterBuffer);
         std::fill(m_instanceCounts.begin(), m_instanceCounts.end(), 0);
         glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, m_instanceCounts.size() * sizeof(GLuint), m_instanceCounts.data());
+    }
+
+    void clearGridCellBuffer() const {
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_SSBOHandleCellGrid);
+        std::vector<GLuint> initialCellBuffer(m_totalCells, 0);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, m_totalCells * sizeof(GLuint), initialCellBuffer.data());
     }
 
     void retrieveInstancingAmountsFromGPU() {
