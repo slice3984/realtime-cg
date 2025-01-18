@@ -20,14 +20,14 @@ void main() {
     vec3 viewDirection = normalize(u_cameraPos - f_worldPos);
     vec3 normal = normalize(f_normal);
 
-    float ambient = 0.5;
+    float ambient = 0.4;
     float diffuse = max(0.0f, dot(normal, lightDir) * (1.0f - ambient));
 
     vec3 halfWay = normalize(viewDirection + lightDir);
     float specular = max(0.0, dot(normal, halfWay));
-    specular = pow(specular, u_specularIntensity);
+    specular = pow(specular, 1024);
 
-    float lightIntensity = ambient + diffuse + specular;
+    float lightIntensity = ambient + diffuse;
     color *= lightIntensity;
     oFragColor = vec4(color.rgb * color.a, color.a);
 }

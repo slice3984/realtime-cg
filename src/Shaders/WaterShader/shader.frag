@@ -35,7 +35,7 @@ void main() {
 
     vec4 skyColor = texture(u_skybox, reflectedDir);
 
-    float reflectionStrength = 0.5f;
+    float reflectionStrength = 0.8f;
     vec4 reflectionColor = skyColor * reflectionStrength;
 
     vec4 finalColor = mix(vec4(lightIntensity, lightIntensity, lightIntensity, 1.0), reflectionColor, reflectionStrength);

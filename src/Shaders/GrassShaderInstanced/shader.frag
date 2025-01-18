@@ -30,7 +30,7 @@ void main() {
 
     float lightIntensity = ambient +
     diffuse * (1.0f - ambient) +
-    specular * 0.3;
+    specular * 0.5;
 
     vec3 finalColor = color.rgb;
 

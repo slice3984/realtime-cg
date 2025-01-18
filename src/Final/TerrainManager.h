@@ -12,7 +12,6 @@
 #include "TerrainPatchLODGenerator.h"
 #include "../ComputeShader.h"
 #include "../GPUModelUploader.h"
-#include "../Shaders/ModelShader/ModelShaderProgram.h"
 #include "../Shaders/GrassShaderInstanced/GrassShaderInstancedProgram.h"
 #include "../Shaders/TerrainShader/TerrainShaderProgram.h"
 #include "../Shaders/TreeShaderInstance/TreeShaderInstancedProgram.h"

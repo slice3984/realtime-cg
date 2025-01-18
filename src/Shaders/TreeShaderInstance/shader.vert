@@ -9,6 +9,7 @@ uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
 uniform int u_baseInstance;
+uniform float u_time;
 
 out vec3 f_worldPos;
 out vec3 f_normal;
@@ -28,6 +29,12 @@ void main() {
     float scalingFactor = instance.scaling;
     vec3 worldPos = scalingFactor * aPos + instance.pos;
 
+    float currTreeHeight = scalingFactor * aPos.y - instance.pos.y;
+
+    // Tree model got a height about 10
+    if (aPos.y > 5.0) {
+        worldPos.x = worldPos.x + sin(worldPos.x * 0.5 + worldPos.z + u_time * 0.5 + gl_InstanceID);
+    }
     vec3 transformedNormal = normalize(aNormal / scalingFactor);
 
     f_worldPos = worldPos;

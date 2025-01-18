@@ -27,14 +27,10 @@ public:
     }
 
     void init() override {
-        RenderCall mc = {
-            h.VAO, h.elementCount, GL_UNSIGNED_INT
-        };
-
-        // Terrain
+        // Skybox
         RenderEntity skybox = generateSkybox();
-        // Terrain - Water
 
+        // Terrain - Water
         geometry_utils::TriangulatedPlaneMesh waterMesh = geometry_utils::generateTriangulatedPlaneMesh(400, 2, true);
         GLuint waterMeshVao = geometry_utils::uploadTriangulatedPlaneMeshToGPU(waterMesh);
         RenderCall waterMeshRc = {
@@ -71,8 +67,6 @@ public:
         glm::mat4 projection = glm::perspective(glm::radians(m_cam.getFov()), aspectRatio, 0.1f, 500.0f);
 
         const TerrainChunk &centerChunk = m_terrainManager.getTerrainChunk(2, 2);
-        glm::vec3 centerChunkWorldSpacePos = m_terrainManager.getWorldSpacePositionInChunk({64.0f, 64.0f}, centerChunk);
-
         float angle = glm::radians(m_orbitangle);
 
         glm::vec3 sunWorldPosition = {
@@ -81,7 +75,7 @@ public:
             m_cam.getCamPos().z + 256.0f * glm::sin(angle)
         };
 
-        m_lightDirection = glm::normalize(sunWorldPosition - centerChunkWorldSpacePos);
+        m_lightDirection = glm::normalize(sunWorldPosition);
 
         // Base Model
         glUseProgram(m_modelShader.getProgramId());
@@ -109,6 +103,7 @@ public:
         m_treeShaderInstanced.setVec3f("u_cameraPos", m_cam.getCamPos());
         m_treeShaderInstanced.setFloat("u_ambientIntensity", m_ambientIntensity);
         m_treeShaderInstanced.setFloat("u_specularIntensity", m_specularIntensity);
+        m_treeShaderInstanced.setFloat("u_time", getElapsedTime());
 
         // Skybox
         glUseProgram(m_skyboxShader.getProgramId());
@@ -140,7 +135,6 @@ public:
         m_sunShader.setFloat("u_specularIntensity", m_specularIntensity);
         m_sunShader.setVec3f("u_sunPosition", sunWorldPosition);
 
-
         glm::vec3 localPos = glm::vec3(64.0f, 0.0f, 64.0f);
 
 
@@ -158,7 +152,7 @@ public:
         glUseProgram(m_terrainShader.getProgramId());
         m_terrainShader.setMat4f("u_view", view);
         m_terrainShader.setMat4f("u_projection", projection);
-        m_terrainShader.setVec3f("u_camPos", m_cam.getCamPos()); // Used for infinite terrain
+        m_terrainShader.setVec3f("u_camPos", m_cam.getCamPos());
         m_terrainShader.setFloat("u_scale", m_terrainScale);
         m_terrainShader.setFloat("u_persistance", m_terrainPersistence);
         m_terrainShader.setFloat("u_lucunarity", m_terrainLucunarity);
@@ -193,14 +187,9 @@ public:
 
 private:
     FPSCamera &m_cam;
-    //TerrainGenerator m_terrainGenerator{400, 1};
     Renderer m_renderer;
     RenderQueue m_renderQueue{"scene"};
     GLuint m_skyboxHandle;
-    TerrainPatchHandle h;
-    MeshBufferInfo test;
-    GLuint ssbo, ebo, vao;
-    float debug{0.0};
 
     // Shaders
     ModelShaderProgram m_modelShader;

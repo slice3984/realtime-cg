@@ -113,7 +113,7 @@ vec4 computeHeightAndNormal(vec2 worldPos) {
     for (int i = 0; i < u_octaves; i++) {
         vec4 noiseAndNormal = snoiseAndNormal(worldPos / (u_scale * frequency));
 
-        float thisNoise = noiseAndNormal.x; // noise value
+        float thisNoise = noiseAndNormal.x;
 
         noiseHeight += amplitude * thisNoise;
 
@@ -212,5 +212,4 @@ void main() {
             }
         }
     }
-
 }
